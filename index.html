@@ -9,7 +9,6 @@ h1{text-align:center}
 button{padding:8px 16px;font-size:15px;cursor:pointer;margin:6px}
 .filters{display:flex;flex-wrap:wrap;gap:10px;justify-content:center;margin-bottom:10px}
 .filters label{background:#fff;padding:6px 10px;border-radius:6px}
-
 h2{margin-top:30px;border-bottom:2px solid #333}
 
 .character-grid{
@@ -23,20 +22,11 @@ h2{margin-top:30px;border-bottom:2px solid #333}
 .char.off img{filter:grayscale(100%) brightness(60%)}
 .char span{font-size:11px}
 
-.drag-area{
-  display:flex;
-  gap:20px;
-  margin-top:20px
-}
-.box{
-  background:#fff;
-  padding:10px;
-  border-radius:10px;
-  width:33%
-}
+.drag-area{display:flex;gap:20px;margin-top:20px}
+.box{background:#fff;padding:10px;border-radius:10px;width:33%}
 .box h3{text-align:center}
 .list{
-  min-height:120px;
+  min-height:140px;
   border:2px dashed #aaa;
   border-radius:8px;
   padding:8px;
@@ -52,9 +42,22 @@ h2{margin-top:30px;border-bottom:2px solid #333}
   border-radius:6px;
   cursor:grab
 }
-.card img{
-  width:40px;height:40px;border-radius:6px;margin-right:6px
+.card img{width:40px;height:40px;border-radius:6px;margin-right:6px}
+
+/* modal */
+#modal{
+  position:fixed;inset:0;
+  background:rgba(0,0,0,.6);
+  display:none;align-items:center;justify-content:center
 }
+#modal .content{
+  background:#fff;
+  padding:20px;
+  border-radius:10px;
+  width:260px;
+  text-align:center
+}
+#modal img{width:96px;height:96px;border-radius:12px}
 </style>
 </head>
 <body>
@@ -82,52 +85,64 @@ h2{margin-top:30px;border-bottom:2px solid #333}
 <div class="drag-area">
   <div class="box">
     <h3>抽選結果</h3>
-    <div id="pool" class="list" ondragover="allowDrop(event)" ondrop="drop(event)"></div>
+    <div id="pool" class="list" ondragover="allowDrop(event)" ondrop="drop(event,'pool')"></div>
   </div>
   <div class="box">
     <h3>チームA（4人）</h3>
-    <div id="teamA" class="list" ondragover="allowDrop(event)" ondrop="drop(event)"></div>
+    <div id="teamA" class="list" ondragover="allowDrop(event)" ondrop="drop(event,'teamA')"></div>
   </div>
   <div class="box">
     <h3>チームB（4人）</h3>
-    <div id="teamB" class="list" ondragover="allowDrop(event)" ondrop="drop(event)"></div>
+    <div id="teamB" class="list" ondragover="allowDrop(event)" ondrop="drop(event,'teamB')"></div>
+  </div>
+</div>
+
+<div id="modal" onclick="this.style.display='none'">
+  <div class="content" onclick="event.stopPropagation()">
+    <img id="mImg">
+    <h3 id="mName"></h3>
+    <p id="mInfo"></p>
   </div>
 </div>
 
 <script>
-const ICON_DIR='./icon/';
-let characters=[];
-let owned=new Set();
-let dragId=null;
+const ICON='./icon/';
+const NATION_ORDER=['モンド','璃月','稲妻','スメール','フォンテーヌ','ナタ','スネージナヤ','その他'];
+let characters=[],owned=new Set(),dragId=null,pressTimer=null;
 
-fetch('characters.json')
-.then(r=>r.json())
-.then(data=>{
-  characters=data;
-  owned=new Set(JSON.parse(localStorage.getItem('owned')) ?? characters.map(c=>c.name));
+fetch('characters.json').then(r=>r.json()).then(d=>{
+  characters=d.map(c=>({...c,nation:c.nation||'その他'}));
+  owned=new Set(JSON.parse(localStorage.getItem('owned'))??characters.map(c=>c.name));
   renderGrid();
 });
 
-function img(name){return ICON_DIR+name+'_s.webp';}
+function img(n){return ICON+n+'_s.webp';}
 function save(){localStorage.setItem('owned',JSON.stringify([...owned]));}
 function allowDrop(e){e.preventDefault();}
-function drag(e){dragId=e.target.id;}
-function drop(e){
+function drag(e){dragId=e.currentTarget.id;}
+function drop(e,target){
   e.preventDefault();
-  const el=document.getElementById(dragId);
-  if(el) e.currentTarget.appendChild(el);
+  const box=document.getElementById(target);
+  if((target==='teamA'||target==='teamB')&&box.children.length>=4){
+    alert('チームは4人までです');
+    return;
+  }
+  box.appendChild(document.getElementById(dragId));
 }
 
 function renderGrid(){
   const area=document.getElementById('gridArea');
   area.innerHTML='';
-  const nations=[...new Set(characters.map(c=>c.nation))];
-  nations.forEach(n=>{
-    const h=document.createElement('h2');h.textContent=n;
+  NATION_ORDER.forEach(n=>{
+    const list=characters.filter(c=>c.nation===n);
+    if(!list.length)return;
+    area.insertAdjacentHTML('beforeend',`<h2>${n}</h2>`);
     const g=document.createElement('div');g.className='character-grid';
-    characters.filter(c=>c.nation===n).forEach(c=>{
+    list.forEach(c=>{
       const d=document.createElement('div');
       d.className='char'+(owned.has(c.name)?'':' off');
+      d.onmousedown=d.ontouchstart=()=>pressTimer=setTimeout(()=>showDetail(c),500);
+      d.onmouseup=d.ontouchend=()=>clearTimeout(pressTimer);
       d.onclick=()=>{
         owned.has(c.name)?owned.delete(c.name):owned.add(c.name);
         save();renderGrid();
@@ -135,27 +150,29 @@ function renderGrid(){
       d.innerHTML=`<img src="${img(c.name)}"><span>${c.name}</span>`;
       g.appendChild(d);
     });
-    area.append(h,g);
+    area.appendChild(g);
   });
 }
 
 function draw(){
+  pool.innerHTML=teamA.innerHTML=teamB.innerHTML='';
   const els=[...document.querySelectorAll('.el:checked')].map(e=>e.value);
-  const r4=r4El.checked,r5=r5El.checked;
-  const pool=characters.filter(c=>
-    owned.has(c.name)&&els.includes(c.element)&&
-    ((c.rarity===4&&r4)||(c.rarity===5&&r5))
-  );
-  if(pool.length<8){alert('対象が8人未満');return;}
-  pool.sort(()=>Math.random()-0.5);
-  pool.slice(0,8).forEach((c,i)=>{
+  const r4=r4.checked,r5=r5.checked;
+  const poolList=characters.filter(c=>owned.has(c.name)&&els.includes(c.element)&&((c.rarity==4&&r4)||(c.rarity==5&&r5)));
+  if(poolList.length<8)return alert('対象が8人未満です');
+  poolList.sort(()=>Math.random()-0.5).slice(0,8).forEach((c,i)=>{
     const d=document.createElement('div');
-    d.className='card';d.id='c'+i;d.draggable=true;
-    d.ondragstart=drag;
+    d.className='card';d.id='c'+i;d.draggable=true;d.ondragstart=drag;
     d.innerHTML=`<img src="${img(c.name)}">${c.name}`;
-    poolDiv.appendChild(d);
+    pool.appendChild(d);
   });
-  teamA.innerHTML='';teamB.innerHTML='';
+}
+
+function showDetail(c){
+  mImg.src=img(c.name);
+  mName.textContent=c.name;
+  mInfo.textContent=`★${c.rarity} / ${c.element} / ${c.nation}`;
+  modal.style.display='flex';
 }
 </script>
 </body>
