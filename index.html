@@ -106,24 +106,31 @@ h2{margin-top:30px;border-bottom:2px solid #333}
 </div>
 
 <script>
-const ICON='./icon/';
-const NATION_ORDER=['モンド','璃月','稲妻','スメール','フォンテーヌ','ナタ','スネージナヤ','その他'];
-let characters=[],owned=new Set(),dragId=null,pressTimer=null;
+const ICON_DIR = './icon/';
+const NATIONS = ['モンド','璃月','稲妻','スメール','フォンテーヌ','ナタ','スネージナヤ','その他'];
 
-fetch('characters.json').then(r=>r.json()).then(d=>{
-  characters=d.map(c=>({...c,nation:c.nation||'その他'}));
-  owned=new Set(JSON.parse(localStorage.getItem('owned'))??characters.map(c=>c.name));
+let characters=[], owned=new Set(), dragId=null, pressTimer=null;
+
+fetch('characters.json')
+.then(r=>r.json())
+.then(data=>{
+  characters=data.map(c=>({...c,nation:c.nation||'その他'}));
+  owned=new Set(JSON.parse(localStorage.getItem('owned')) ?? characters.map(c=>c.name));
   renderGrid();
 });
 
-function img(n){return ICON+n+'_s.webp';}
+function img(c){
+  return `${ICON_DIR}${c.nation}/${c.name}_s.webp`;
+}
+
 function save(){localStorage.setItem('owned',JSON.stringify([...owned]));}
 function allowDrop(e){e.preventDefault();}
 function drag(e){dragId=e.currentTarget.id;}
+
 function drop(e,target){
   e.preventDefault();
   const box=document.getElementById(target);
-  if((target==='teamA'||target==='teamB')&&box.children.length>=4){
+  if((target==='teamA'||target==='teamB') && box.children.length>=4){
     alert('チームは4人までです');
     return;
   }
@@ -133,11 +140,12 @@ function drop(e,target){
 function renderGrid(){
   const area=document.getElementById('gridArea');
   area.innerHTML='';
-  NATION_ORDER.forEach(n=>{
+  NATIONS.forEach(n=>{
     const list=characters.filter(c=>c.nation===n);
-    if(!list.length)return;
+    if(!list.length) return;
     area.insertAdjacentHTML('beforeend',`<h2>${n}</h2>`);
-    const g=document.createElement('div');g.className='character-grid';
+    const g=document.createElement('div');
+    g.className='character-grid';
     list.forEach(c=>{
       const d=document.createElement('div');
       d.className='char'+(owned.has(c.name)?'':' off');
@@ -145,9 +153,9 @@ function renderGrid(){
       d.onmouseup=d.ontouchend=()=>clearTimeout(pressTimer);
       d.onclick=()=>{
         owned.has(c.name)?owned.delete(c.name):owned.add(c.name);
-        save();renderGrid();
+        save(); renderGrid();
       };
-      d.innerHTML=`<img src="${img(c.name)}"><span>${c.name}</span>`;
+      d.innerHTML=`<img src="${img(c)}"><span>${c.name}</span>`;
       g.appendChild(d);
     });
     area.appendChild(g);
@@ -156,20 +164,31 @@ function renderGrid(){
 
 function draw(){
   pool.innerHTML=teamA.innerHTML=teamB.innerHTML='';
+  const r4Checked=document.getElementById('r4').checked;
+  const r5Checked=document.getElementById('r5').checked;
   const els=[...document.querySelectorAll('.el:checked')].map(e=>e.value);
-  const r4=r4.checked,r5=r5.checked;
-  const poolList=characters.filter(c=>owned.has(c.name)&&els.includes(c.element)&&((c.rarity==4&&r4)||(c.rarity==5&&r5)));
-  if(poolList.length<8)return alert('対象が8人未満です');
-  poolList.sort(()=>Math.random()-0.5).slice(0,8).forEach((c,i)=>{
+
+  const list=characters.filter(c=>
+    owned.has(c.name)&&
+    els.includes(c.element)&&
+    ((c.rarity===4&&r4Checked)||(c.rarity===5&&r5Checked))
+  );
+
+  if(list.length<8){alert('対象が8人未満です');return;}
+
+  list.sort(()=>Math.random()-0.5).slice(0,8).forEach((c,i)=>{
     const d=document.createElement('div');
-    d.className='card';d.id='c'+i;d.draggable=true;d.ondragstart=drag;
-    d.innerHTML=`<img src="${img(c.name)}">${c.name}`;
+    d.className='card';
+    d.id='c'+i;
+    d.draggable=true;
+    d.ondragstart=drag;
+    d.innerHTML=`<img src="${img(c)}">${c.name}`;
     pool.appendChild(d);
   });
 }
 
 function showDetail(c){
-  mImg.src=img(c.name);
+  mImg.src=img(c);
   mName.textContent=c.name;
   mInfo.textContent=`★${c.rarity} / ${c.element} / ${c.nation}`;
   modal.style.display='flex';
