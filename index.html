@@ -50,41 +50,41 @@ li img{width:48px;height:48px;margin-right:6px;border-radius:8px;object-fit:cove
 </div>
 
 <script>
-const WIKI_IMG_BASE = 'https://wikiwiki.jp/genshinwiki/画像/';
+const WIKI_IMG = 'https://wikiwiki.jp/genshinwiki/画像/';
 
 let characters = [];
 let owned = new Set();
 
-/* ---------- 初期化：characters.json 読み込み ---------- */
+/* ---------- 初期化 ---------- */
 fetch('characters.json')
   .then(res => {
-    if (!res.ok) throw new Error('characters.json が読み込めません');
+    if (!res.ok) throw new Error('characters.json が見つかりません');
     return res.json();
   })
   .then(data => {
     if (!Array.isArray(data)) {
-      throw new Error('characters.json の形式が不正です');
+      throw new Error('characters.json が配列ではありません');
     }
+
     characters = data;
 
-    const saved = JSON.parse(localStorage.getItem('owned') || 'null');
-    owned = new Set(saved || characters.map(c => c.name));
+    const saved = JSON.parse(localStorage.getItem('owned'));
+    owned = new Set(saved ?? characters.map(c => c.name));
 
     renderGrid();
   })
   .catch(err => {
     console.error(err);
-    alert('characters.json の読み込みに失敗しました');
+    alert('キャラデータの読み込みに失敗しました');
   });
 
-/* ---------- 共通処理 ---------- */
+/* ---------- 共通 ---------- */
 function save(){
   localStorage.setItem('owned', JSON.stringify([...owned]));
 }
 
 function imgUrl(name){
-  // wikiwiki.jp キャラクター一覧の画像を直接使用（ローカル保存なし）
-  return WIKI_IMG_BASE + encodeURIComponent(name) + '.webp';
+  return WIKI_IMG + encodeURIComponent(name) + '.webp';
 }
 
 function shuffle(arr){
@@ -94,7 +94,7 @@ function shuffle(arr){
   }
 }
 
-/* ---------- キャラ一覧表示 ---------- */
+/* ---------- キャラ一覧 ---------- */
 function renderGrid(){
   const grid = document.getElementById('grid');
   grid.innerHTML = '';
@@ -141,7 +141,7 @@ function draw(){
   document.getElementById('t2').innerHTML = '';
 
   picked.slice(0, 4).forEach(c => addResult('t1', c));
-  picked.slice(4, 8).forEach(c => addResult('t2', c));
+  picked.slice(4).forEach(c => addResult('t2', c));
 }
 
 function addResult(id, c){
