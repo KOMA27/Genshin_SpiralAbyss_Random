@@ -50,106 +50,73 @@ li img{width:48px;height:48px;margin-right:6px;border-radius:8px;object-fit:cove
 </div>
 
 <script>
-const WIKI_IMG = 'https://wikiwiki.jp/genshinwiki/画像/';
+const ICON_DIR = './icons/';
 
 let characters = [];
 let owned = new Set();
 
-/* ---------- 初期化 ---------- */
+/* 初期化 */
 fetch('characters.json')
-  .then(res => {
-    if (!res.ok) throw new Error('characters.json が見つかりません');
-    return res.json();
-  })
+  .then(r => r.json())
   .then(data => {
-    if (!Array.isArray(data)) {
-      throw new Error('characters.json が配列ではありません');
-    }
-
     characters = data;
-
     const saved = JSON.parse(localStorage.getItem('owned'));
     owned = new Set(saved ?? characters.map(c => c.name));
-
     renderGrid();
-  })
-  .catch(err => {
-    console.error(err);
-    alert('キャラデータの読み込みに失敗しました');
   });
 
-/* ---------- 共通 ---------- */
+function imgUrl(name){
+  return ICON_DIR + name + '_s.webp';
+}
+
 function save(){
   localStorage.setItem('owned', JSON.stringify([...owned]));
 }
 
-function imgUrl(name){
-  return WIKI_IMG + encodeURIComponent(name) + '.webp';
-}
-
-function shuffle(arr){
-  for(let i = arr.length - 1; i > 0; i--){
-    const j = Math.floor(Math.random() * (i + 1));
-    [arr[i], arr[j]] = [arr[j], arr[i]];
+function shuffle(a){
+  for(let i=a.length-1;i>0;i--){
+    const j=Math.floor(Math.random()*(i+1));
+    [a[i],a[j]]=[a[j],a[i]];
   }
 }
 
-/* ---------- キャラ一覧 ---------- */
 function renderGrid(){
-  const grid = document.getElementById('grid');
-  grid.innerHTML = '';
-
-  characters.forEach(c => {
-    const div = document.createElement('div');
-    div.className = 'char' + (owned.has(c.name) ? '' : ' off');
-
-    div.onclick = () => {
-      owned.has(c.name) ? owned.delete(c.name) : owned.add(c.name);
-      save();
-      renderGrid();
-    };
-
-    div.innerHTML = `
-      <img src="${imgUrl(c.name)}" loading="lazy">
-      <span>${c.name}</span>
-    `;
-    grid.appendChild(div);
+  const g=document.getElementById('grid');
+  g.innerHTML='';
+  characters.forEach(c=>{
+    const d=document.createElement('div');
+    d.className='char'+(owned.has(c.name)?'':' off');
+    d.onclick=()=>{owned.has(c.name)?owned.delete(c.name):owned.add(c.name);save();renderGrid();};
+    d.innerHTML=`<img src="${imgUrl(c.name)}"><span>${c.name}</span>`;
+    g.appendChild(d);
   });
 }
 
-/* ---------- 抽選 ---------- */
 function draw(){
-  const elements = [...document.querySelectorAll('.el:checked')].map(e => e.value);
-  const allow4 = document.getElementById('r4').checked;
-  const allow5 = document.getElementById('r5').checked;
+  const els=[...document.querySelectorAll('.el:checked')].map(e=>e.value);
+  const r4=document.getElementById('r4').checked;
+  const r5=document.getElementById('r5').checked;
 
-  const pool = characters.filter(c =>
+  const pool=characters.filter(c =>
     owned.has(c.name) &&
-    elements.includes(c.element) &&
-    ((c.rarity === 4 && allow4) || (c.rarity === 5 && allow5))
+    els.includes(c.element) &&
+    ((c.rarity===4&&r4)||(c.rarity===5&&r5))
   );
 
-  if(pool.length < 8){
-    alert('抽選対象キャラが8人未満です');
-    return;
-  }
+  if(pool.length<8){alert('対象キャラが8人未満です');return;}
 
   shuffle(pool);
-  const picked = pool.slice(0, 8);
-
-  document.getElementById('t1').innerHTML = '';
-  document.getElementById('t2').innerHTML = '';
-
-  picked.slice(0, 4).forEach(c => addResult('t1', c));
-  picked.slice(4).forEach(c => addResult('t2', c));
+  const p=pool.slice(0,8);
+  t1.innerHTML='';t2.innerHTML='';
+  p.slice(0,4).forEach(c=>add('t1',c));
+  p.slice(4).forEach(c=>add('t2',c));
 }
 
-function addResult(id, c){
-  const li = document.createElement('li');
-  li.innerHTML = `<img src="${imgUrl(c.name)}">${c.name}`;
+function add(id,c){
+  const li=document.createElement('li');
+  li.innerHTML=`<img src="${imgUrl(c.name)}">${c.name}`;
   document.getElementById(id).appendChild(li);
 }
 </script>
-
 </body>
 </html>
