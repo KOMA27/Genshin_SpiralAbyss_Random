@@ -22,69 +22,134 @@ li img{width:48px;height:48px;margin-right:6px;border-radius:8px;object-fit:cove
 </style>
 </head>
 <body>
+
 <h1>原神 深境螺旋 抽選ツール</h1>
 
 <div class="filters">
-<label><input type="checkbox" id="r4" checked>★4</label>
-<label><input type="checkbox" id="r5" checked>★5</label>
-<label><input type="checkbox" class="el" value="炎" checked>炎</label>
-<label><input type="checkbox" class="el" value="水" checked>水</label>
-<label><input type="checkbox" class="el" value="風" checked>風</label>
-<label><input type="checkbox" class="el" value="雷" checked>雷</label>
-<label><input type="checkbox" class="el" value="氷" checked>氷</label>
-<label><input type="checkbox" class="el" value="草" checked>草</label>
-<label><input type="checkbox" class="el" value="岩" checked>岩</label>
+  <label><input type="checkbox" id="r4" checked>★4</label>
+  <label><input type="checkbox" id="r5" checked>★5</label>
+  <label><input type="checkbox" class="el" value="炎" checked>炎</label>
+  <label><input type="checkbox" class="el" value="水" checked>水</label>
+  <label><input type="checkbox" class="el" value="風" checked>風</label>
+  <label><input type="checkbox" class="el" value="雷" checked>雷</label>
+  <label><input type="checkbox" class="el" value="氷" checked>氷</label>
+  <label><input type="checkbox" class="el" value="草" checked>草</label>
+  <label><input type="checkbox" class="el" value="岩" checked>岩</label>
 </div>
 
 <div style="text-align:center">
-<button onclick="draw()">抽選</button>
-<button onclick="draw(true)">再抽選</button>
+  <button onclick="draw()">抽選</button>
+  <button onclick="draw()">再抽選</button>
 </div>
 
 <div id="grid" class="character-grid"></div>
 
 <div class="teams">
-<div class="team"><h2>前半</h2><ul id="t1"></ul></div>
-<div class="team"><h2>後半</h2><ul id="t2"></ul></div>
+  <div class="team"><h2>前半</h2><ul id="t1"></ul></div>
+  <div class="team"><h2>後半</h2><ul id="t2"></ul></div>
 </div>
 
 <script>
-const wiki='https://wikiwiki.jp/genshinwiki/画像/';
-const characters="+js+";
+const WIKI_IMG_BASE = 'https://wikiwiki.jp/genshinwiki/画像/';
 
-let owned=new Set(JSON.parse(localStorage.getItem('owned')||JSON.stringify(characters.map(c=>c.name))));
+let characters = [];
+let owned = new Set();
 
-function save(){localStorage.setItem('owned',JSON.stringify([...owned]));}
+/* ---------- 初期化：characters.json 読み込み ---------- */
+fetch('characters.json')
+  .then(res => {
+    if (!res.ok) throw new Error('characters.json が読み込めません');
+    return res.json();
+  })
+  .then(data => {
+    if (!Array.isArray(data)) {
+      throw new Error('characters.json の形式が不正です');
+    }
+    characters = data;
+
+    const saved = JSON.parse(localStorage.getItem('owned') || 'null');
+    owned = new Set(saved || characters.map(c => c.name));
+
+    renderGrid();
+  })
+  .catch(err => {
+    console.error(err);
+    alert('characters.json の読み込みに失敗しました');
+  });
+
+/* ---------- 共通処理 ---------- */
+function save(){
+  localStorage.setItem('owned', JSON.stringify([...owned]));
+}
+
 function imgUrl(name){
-  // wikiwiki.jp キャラクター一覧ページ準拠のキャラクター画像（ローカル保存なし）
-  // 例: https://wikiwiki.jp/genshinwiki/画像/アンバー.webp
-  return 'https://wikiwiki.jp/genshinwiki/画像/' + encodeURIComponent(name) + '.webp';
+  // wikiwiki.jp キャラクター一覧の画像を直接使用（ローカル保存なし）
+  return WIKI_IMG_BASE + encodeURIComponent(name) + '.webp';
 }
-function shuffle(a){for(let i=a.length-1;i>0;i--){const j=Math.floor(Math.random()*(i+1));[a[i],a[j]]=[a[j],a[i]]}}
 
+function shuffle(arr){
+  for(let i = arr.length - 1; i > 0; i--){
+    const j = Math.floor(Math.random() * (i + 1));
+    [arr[i], arr[j]] = [arr[j], arr[i]];
+  }
+}
+
+/* ---------- キャラ一覧表示 ---------- */
 function renderGrid(){
- const g=document.getElementById('grid');g.innerHTML='';
- characters.forEach(c=>{
-  const d=document.createElement('div');d.className='char'+(owned.has(c.name)?'':' off');
-  d.onclick=()=>{owned.has(c.name)?owned.delete(c.name):owned.add(c.name);save();renderGrid();};
-  d.innerHTML=`<img src="${imgUrl(c.name)}"><span>${c.name}</span>`;
-  g.appendChild(d);
- });
+  const grid = document.getElementById('grid');
+  grid.innerHTML = '';
+
+  characters.forEach(c => {
+    const div = document.createElement('div');
+    div.className = 'char' + (owned.has(c.name) ? '' : ' off');
+
+    div.onclick = () => {
+      owned.has(c.name) ? owned.delete(c.name) : owned.add(c.name);
+      save();
+      renderGrid();
+    };
+
+    div.innerHTML = `
+      <img src="${imgUrl(c.name)}" loading="lazy">
+      <span>${c.name}</span>
+    `;
+    grid.appendChild(div);
+  });
 }
 
+/* ---------- 抽選 ---------- */
 function draw(){
- const els=[...document.querySelectorAll('.el:checked')].map(e=>e.value);
- const r4=document.getElementById('r4').checked;
- const r5=document.getElementById('r5').checked;
- let pool=characters.filter(c=>owned.has(c.name)&&els.includes(c.element)&&((c.rarity==4&&r4)||(c.rarity==5&&r5)));
- if(pool.length<8){alert('対象キャラが8人未満です');return;}
- shuffle(pool);const p=pool.slice(0,8);
- ['t1','t2'].forEach(id=>document.getElementById(id).innerHTML='');
- p.slice(0,4).forEach(c=>add('t1',c));p.slice(4).forEach(c=>add('t2',c));
-}
-function add(id,c){const li=document.createElement('li');li.innerHTML=`<img src="${imgUrl(c.name)}">${c.name}`;document.getElementById(id).appendChild(li)}
+  const elements = [...document.querySelectorAll('.el:checked')].map(e => e.value);
+  const allow4 = document.getElementById('r4').checked;
+  const allow5 = document.getElementById('r5').checked;
 
-renderGrid();
+  const pool = characters.filter(c =>
+    owned.has(c.name) &&
+    elements.includes(c.element) &&
+    ((c.rarity === 4 && allow4) || (c.rarity === 5 && allow5))
+  );
+
+  if(pool.length < 8){
+    alert('抽選対象キャラが8人未満です');
+    return;
+  }
+
+  shuffle(pool);
+  const picked = pool.slice(0, 8);
+
+  document.getElementById('t1').innerHTML = '';
+  document.getElementById('t2').innerHTML = '';
+
+  picked.slice(0, 4).forEach(c => addResult('t1', c));
+  picked.slice(4, 8).forEach(c => addResult('t2', c));
+}
+
+function addResult(id, c){
+  const li = document.createElement('li');
+  li.innerHTML = `<img src="${imgUrl(c.name)}">${c.name}`;
+  document.getElementById(id).appendChild(li);
+}
 </script>
+
 </body>
 </html>
