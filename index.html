@@ -9,120 +9,59 @@ h1{text-align:center}
 button{padding:8px 16px;font-size:15px;cursor:pointer;margin:6px}
 .filters{display:flex;flex-wrap:wrap;gap:10px;justify-content:center;margin-bottom:10px}
 .filters label{background:#fff;padding:6px 10px;border-radius:6px}
-h2{margin-top:30px;border-bottom:2px solid #333}
-
-.character-grid{
-  display:grid;
-  grid-template-columns:repeat(auto-fill,80px);
-  gap:12px;
-  margin:10px 0
-}
+.character-grid{display:grid;grid-template-columns:repeat(auto-fill,80px);gap:12px;margin:15px 0}
 .char{text-align:center;cursor:pointer}
 .char img{width:72px;height:72px;border-radius:10px}
 .char.off img{filter:grayscale(100%) brightness(60%)}
 .char span{font-size:11px}
-
 .drag-area{display:flex;gap:20px;margin-top:20px}
 .box{background:#fff;padding:10px;border-radius:10px;width:33%}
 .box h3{text-align:center}
-.list{
-  min-height:140px;
-  border:2px dashed #aaa;
-  border-radius:8px;
-  padding:8px;
-  display:grid;
-  grid-template-columns:repeat(auto-fill,120px);
-  gap:6px
-}
-.card{
-  display:flex;
-  align-items:center;
-  background:#eee;
-  padding:4px;
-  border-radius:6px;
-  cursor:grab
-}
+.list{min-height:140px;border:2px dashed #aaa;border-radius:8px;padding:8px;display:grid;grid-template-columns:repeat(auto-fill,120px);gap:6px}
+.card{display:flex;align-items:center;background:#eee;padding:4px;border-radius:6px;cursor:grab}
 .card img{width:40px;height:40px;border-radius:6px;margin-right:6px}
-
-/* modal */
-#modal{
-  position:fixed;inset:0;
-  background:rgba(0,0,0,.6);
-  display:none;align-items:center;justify-content:center
-}
-#modal .content{
-  background:#fff;
-  padding:20px;
-  border-radius:10px;
-  width:260px;
-  text-align:center
-}
-#modal img{width:96px;height:96px;border-radius:12px}
 </style>
 </head>
 <body>
-
 <h1>原神 深境螺旋 抽選ツール</h1>
 
 <div class="filters">
-  <label><input type="checkbox" id="r4" checked>★4</label>
-  <label><input type="checkbox" id="r5" checked>★5</label>
-  <label><input type="checkbox" class="el" value="炎" checked>炎</label>
-  <label><input type="checkbox" class="el" value="水" checked>水</label>
-  <label><input type="checkbox" class="el" value="風" checked>風</label>
-  <label><input type="checkbox" class="el" value="雷" checked>雷</label>
-  <label><input type="checkbox" class="el" value="氷" checked>氷</label>
-  <label><input type="checkbox" class="el" value="草" checked>草</label>
-  <label><input type="checkbox" class="el" value="岩" checked>岩</label>
+<label><input type="checkbox" id="r4" checked>★4</label>
+<label><input type="checkbox" id="r5" checked>★5</label>
+<label><input type="checkbox" class="el" value="炎" checked>炎</label>
+<label><input type="checkbox" class="el" value="水" checked>水</label>
+<label><input type="checkbox" class="el" value="風" checked>風</label>
+<label><input type="checkbox" class="el" value="雷" checked>雷</label>
+<label><input type="checkbox" class="el" value="氷" checked>氷</label>
+<label><input type="checkbox" class="el" value="草" checked>草</label>
+<label><input type="checkbox" class="el" value="岩" checked>岩</label>
 </div>
 
 <div style="text-align:center">
-  <button onclick="draw()">8人抽選</button>
+<button onclick="draw()">8人抽選</button>
 </div>
 
-<div id="gridArea"></div>
+<div id="grid" class="character-grid"></div>
 
 <div class="drag-area">
-  <div class="box">
-    <h3>抽選結果</h3>
-    <div id="pool" class="list" ondragover="allowDrop(event)" ondrop="drop(event,'pool')"></div>
-  </div>
-  <div class="box">
-    <h3>チームA（4人）</h3>
-    <div id="teamA" class="list" ondragover="allowDrop(event)" ondrop="drop(event,'teamA')"></div>
-  </div>
-  <div class="box">
-    <h3>チームB（4人）</h3>
-    <div id="teamB" class="list" ondragover="allowDrop(event)" ondrop="drop(event,'teamB')"></div>
-  </div>
-</div>
-
-<div id="modal" onclick="this.style.display='none'">
-  <div class="content" onclick="event.stopPropagation()">
-    <img id="mImg">
-    <h3 id="mName"></h3>
-    <p id="mInfo"></p>
-  </div>
+<div class="box"><h3>抽選結果</h3><div id="pool" class="list" ondragover="allowDrop(event)" ondrop="drop(event,'pool')"></div></div>
+<div class="box"><h3>チームA</h3><div id="teamA" class="list" ondragover="allowDrop(event)" ondrop="drop(event,'teamA')"></div></div>
+<div class="box"><h3>チームB</h3><div id="teamB" class="list" ondragover="allowDrop(event)" ondrop="drop(event,'teamB')"></div></div>
 </div>
 
 <script>
-const ICON_DIR = './icon/';
-const NATIONS = ['モンド','璃月','稲妻','スメール','フォンテーヌ','ナタ','スネージナヤ','その他'];
+const ICON='./icon/';
+let characters=[];
+let owned=new Set();
+let dragId=null;
 
-let characters=[], owned=new Set(), dragId=null, pressTimer=null;
-
-fetch('characters.json')
-.then(r=>r.json())
-.then(data=>{
-  characters=data.map(c=>({...c,nation:c.nation||'その他'}));
-  owned=new Set(JSON.parse(localStorage.getItem('owned')) ?? characters.map(c=>c.name));
+fetch('characters.json').then(r=>r.json()).then(data=>{
+  characters=data;
+  owned=new Set(JSON.parse(localStorage.getItem('owned'))||characters.map(c=>c.name));
   renderGrid();
 });
 
-function img(c){
-  return `${ICON_DIR}${c.nation}/${c.name}_s.webp`;
-}
-
+function img(c){return ICON+c.name+'_s.webp';}
 function save(){localStorage.setItem('owned',JSON.stringify([...owned]));}
 function allowDrop(e){e.preventDefault();}
 function drag(e){dragId=e.currentTarget.id;}
@@ -130,68 +69,45 @@ function drag(e){dragId=e.currentTarget.id;}
 function drop(e,target){
   e.preventDefault();
   const box=document.getElementById(target);
-  if((target==='teamA'||target==='teamB') && box.children.length>=4){
-    alert('チームは4人までです');
-    return;
+  const card=document.getElementById(dragId);
+  if((target==='teamA'||target==='teamB') && box.children.length>=4) return;
+  box.appendChild(card);
+  autoFill();
+}
+
+function autoFill(){
+  if(teamA.children.length===4 && teamB.children.length===0){
+    [...pool.children].forEach(c=>teamB.appendChild(c));
   }
-  box.appendChild(document.getElementById(dragId));
+  if(teamB.children.length===4 && teamA.children.length===0){
+    [...pool.children].forEach(c=>teamA.appendChild(c));
+  }
 }
 
 function renderGrid(){
-  const area=document.getElementById('gridArea');
-  area.innerHTML='';
-  NATIONS.forEach(n=>{
-    const list=characters.filter(c=>c.nation===n);
-    if(!list.length) return;
-    area.insertAdjacentHTML('beforeend',`<h2>${n}</h2>`);
-    const g=document.createElement('div');
-    g.className='character-grid';
-    list.forEach(c=>{
-      const d=document.createElement('div');
-      d.className='char'+(owned.has(c.name)?'':' off');
-      d.onmousedown=d.ontouchstart=()=>pressTimer=setTimeout(()=>showDetail(c),500);
-      d.onmouseup=d.ontouchend=()=>clearTimeout(pressTimer);
-      d.onclick=()=>{
-        owned.has(c.name)?owned.delete(c.name):owned.add(c.name);
-        save(); renderGrid();
-      };
-      d.innerHTML=`<img src="${img(c)}"><span>${c.name}</span>`;
-      g.appendChild(d);
-    });
-    area.appendChild(g);
+  grid.innerHTML='';
+  characters.forEach(c=>{
+    const d=document.createElement('div');
+    d.className='char'+(owned.has(c.name)?'':' off');
+    d.onclick=()=>{owned.has(c.name)?owned.delete(c.name):owned.add(c.name);save();renderGrid();};
+    d.innerHTML=`<img src="${img(c)}"><span>${c.name}</span>`;
+    grid.appendChild(d);
   });
 }
 
 function draw(){
   pool.innerHTML=teamA.innerHTML=teamB.innerHTML='';
-  const r4Checked=document.getElementById('r4').checked;
-  const r5Checked=document.getElementById('r5').checked;
+  const r4=document.getElementById('r4').checked;
+  const r5=document.getElementById('r5').checked;
   const els=[...document.querySelectorAll('.el:checked')].map(e=>e.value);
-
-  const list=characters.filter(c=>
-    owned.has(c.name)&&
-    els.includes(c.element)&&
-    ((c.rarity===4&&r4Checked)||(c.rarity===5&&r5Checked))
-  );
-
-  if(list.length<8){alert('対象が8人未満です');return;}
-
+  const list=characters.filter(c=>owned.has(c.name)&&els.includes(c.element)&&((c.rarity===4&&r4)||(c.rarity===5&&r5)));
+  if(list.length<8){alert('8人未満です');return;}
   list.sort(()=>Math.random()-0.5).slice(0,8).forEach((c,i)=>{
     const d=document.createElement('div');
-    d.className='card';
-    d.id='c'+i;
-    d.draggable=true;
-    d.ondragstart=drag;
+    d.className='card';d.id='c'+i;d.draggable=true;d.ondragstart=drag;
     d.innerHTML=`<img src="${img(c)}">${c.name}`;
     pool.appendChild(d);
   });
-}
-
-function showDetail(c){
-  mImg.src=img(c);
-  mName.textContent=c.name;
-  mInfo.textContent=`★${c.rarity} / ${c.element} / ${c.nation}`;
-  modal.style.display='flex';
 }
 </script>
 </body>
