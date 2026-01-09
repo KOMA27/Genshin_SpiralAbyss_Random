@@ -6,37 +6,46 @@
 <link rel="stylesheet" href="style.css">
 </head>
 <body>
+
 <h1>深境螺旋 チーム抽選</h1>
 
 <div class="filters">
-<label><input type="checkbox" id="r4" checked>★4</label>
-<label><input type="checkbox" id="r5" checked>★5</label>
-<label><input type="checkbox" class="el" value="炎" checked>炎</label>
-<label><input type="checkbox" class="el" value="水" checked>水</label>
-<label><input type="checkbox" class="el" value="風" checked>風</label>
-<label><input type="checkbox" class="el" value="雷" checked>雷</label>
-<label><input type="checkbox" class="el" value="氷" checked>氷</label>
-<label><input type="checkbox" class="el" value="草" checked>草</label>
-<label><input type="checkbox" class="el" value="岩" checked>岩</label>
+  <label><input type="checkbox" id="r4" checked>★4</label>
+  <label><input type="checkbox" id="r5" checked>★5</label>
+  <label><input type="checkbox" class="el" value="炎" checked>炎</label>
+  <label><input type="checkbox" class="el" value="水" checked>水</label>
+  <label><input type="checkbox" class="el" value="風" checked>風</label>
+  <label><input type="checkbox" class="el" value="雷" checked>雷</label>
+  <label><input type="checkbox" class="el" value="氷" checked>氷</label>
+  <label><input type="checkbox" class="el" value="草" checked>草</label>
+  <label><input type="checkbox" class="el" value="岩" checked>岩</label>
 </div>
 
 <div class="center">
-<button onclick="draw()">8人抽選</button>
+  <button class="draw-btn" onclick="draw()">8人抽選</button>
+</div>
+
+<!-- 抽選結果をボタン直下に -->
+<div class="drag-area">
+  <div class="box">
+    <h2>抽選結果</h2>
+    <div id="pool" class="list" ondragover="allowDrop(event)" ondrop="drop(event,'pool')"></div>
+  </div>
+  <div class="box">
+    <h2>前半</h2>
+    <div id="teamA" class="list" ondragover="allowDrop(event)" ondrop="drop(event,'teamA')"></div>
+  </div>
+  <div class="box">
+    <h2>後半</h2>
+    <div id="teamB" class="list" ondragover="allowDrop(event)" ondrop="drop(event,'teamB')"></div>
+  </div>
 </div>
 
 <div id="grid" class="character-grid"></div>
 
-<div class="drag-area">
-<div class="box"><h2>抽選結果</h2><div id="pool" class="list" ondragover="allowDrop(event)" ondrop="drop(event,'pool')"></div></div>
-<div class="box"><h2>前半</h2><div id="teamA" class="list" ondragover="allowDrop(event)" ondrop="drop(event,'teamA')"></div></div>
-<div class="box"><h2>後半</h2><div id="teamB" class="list" ondragover="allowDrop(event)" ondrop="drop(event,'teamB')"></div></div>
-</div>
-
 <script>
 const ICON='./icon/';
-let characters=[];
-let owned=new Set();
-let dragId=null;
+let characters=[], owned=new Set(), dragId=null;
 
 fetch('characters.json').then(r=>r.json()).then(data=>{
   characters=data;
@@ -83,11 +92,20 @@ function draw(){
   const r4=document.getElementById('r4').checked;
   const r5=document.getElementById('r5').checked;
   const els=[...document.querySelectorAll('.el:checked')].map(e=>e.value);
-  const list=characters.filter(c=>owned.has(c.name)&&els.includes(c.element)&&((c.rarity===4&&r4)||(c.rarity===5&&r5)));
+
+  const list=characters.filter(c=>
+    owned.has(c.name)&&els.includes(c.element)&&
+    ((c.rarity===4&&r4)||(c.rarity===5&&r5))
+  );
+
   if(list.length<8){alert('8人未満です');return;}
+
   list.sort(()=>Math.random()-0.5).slice(0,8).forEach((c,i)=>{
     const d=document.createElement('div');
-    d.className='card';d.id='c'+i;d.draggable=true;d.ondragstart=drag;
+    d.className='card';
+    d.id='c'+i;
+    d.draggable=true;
+    d.ondragstart=drag;
     d.innerHTML=`<img src="${img(c)}">${c.name}`;
     pool.appendChild(d);
   });
