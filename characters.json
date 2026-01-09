@@ -1,0 +1,542 @@
+[
+  {
+    "name": "旅人",
+    "rarity": 5,
+    "element": "―"
+  },
+  {
+    "name": "スカーク",
+    "rarity": 5,
+    "element": "氷"
+  },
+  {
+    "name": "アーロイ",
+    "rarity": 5,
+    "element": "氷"
+  },
+  {
+    "name": "ドゥリン",
+    "rarity": 5,
+    "element": "炎"
+  },
+  {
+    "name": "ジン",
+    "rarity": 5,
+    "element": "風"
+  },
+  {
+    "name": "アルベド",
+    "rarity": 5,
+    "element": "岩"
+  },
+  {
+    "name": "ディルック",
+    "rarity": 5,
+    "element": "炎"
+  },
+  {
+    "name": "エウルア",
+    "rarity": 5,
+    "element": "氷"
+  },
+  {
+    "name": "クレー",
+    "rarity": 5,
+    "element": "炎"
+  },
+  {
+    "name": "モナ",
+    "rarity": 5,
+    "element": "水"
+  },
+  {
+    "name": "ウェンティ",
+    "rarity": 5,
+    "element": "風"
+  },
+  {
+    "name": "刻晴",
+    "rarity": 5,
+    "element": "雷"
+  },
+  {
+    "name": "七七",
+    "rarity": 5,
+    "element": "氷"
+  },
+  {
+    "name": "胡桃",
+    "rarity": 5,
+    "element": "炎"
+  },
+  {
+    "name": "魈",
+    "rarity": 5,
+    "element": "風"
+  },
+  {
+    "name": "申鶴",
+    "rarity": 5,
+    "element": "氷"
+  },
+  {
+    "name": "鍾離",
+    "rarity": 5,
+    "element": "岩"
+  },
+  {
+    "name": "閑雲",
+    "rarity": 5,
+    "element": "風"
+  },
+  {
+    "name": "白朮",
+    "rarity": 5,
+    "element": "草"
+  },
+  {
+    "name": "夜蘭",
+    "rarity": 5,
+    "element": "水"
+  },
+  {
+    "name": "甘雨",
+    "rarity": 5,
+    "element": "氷"
+  },
+  {
+    "name": "神里綾人",
+    "rarity": 5,
+    "element": "水"
+  },
+  {
+    "name": "楓原万葉",
+    "rarity": 5,
+    "element": "風"
+  },
+  {
+    "name": "神里綾華",
+    "rarity": 5,
+    "element": "氷"
+  },
+  {
+    "name": "千織",
+    "rarity": 5,
+    "element": "岩"
+  },
+  {
+    "name": "荒瀧一斗",
+    "rarity": 5,
+    "element": "岩"
+  },
+  {
+    "name": "雷電将軍",
+    "rarity": 5,
+    "element": "雷"
+  },
+  {
+    "name": "珊瑚宮心海",
+    "rarity": 5,
+    "element": "水"
+  },
+  {
+    "name": "夢見月瑞希",
+    "rarity": 5,
+    "element": "風"
+  },
+  {
+    "name": "八重神子",
+    "rarity": 5,
+    "element": "雷"
+  },
+  {
+    "name": "宵宮",
+    "rarity": 5,
+    "element": "炎"
+  },
+  {
+    "name": "ニィロウ",
+    "rarity": 5,
+    "element": "水"
+  },
+  {
+    "name": "アルハイゼン",
+    "rarity": 5,
+    "element": "草"
+  },
+  {
+    "name": "ディシア",
+    "rarity": 5,
+    "element": "炎"
+  },
+  {
+    "name": "セノ",
+    "rarity": 5,
+    "element": "雷"
+  },
+  {
+    "name": "放浪者",
+    "rarity": 5,
+    "element": "風"
+  },
+  {
+    "name": "ナヒーダ",
+    "rarity": 5,
+    "element": "草"
+  },
+  {
+    "name": "ティナリ",
+    "rarity": 5,
+    "element": "草"
+  },
+  {
+    "name": "フリーナ",
+    "rarity": 5,
+    "element": "水"
+  },
+  {
+    "name": "クロリンデ",
+    "rarity": 5,
+    "element": "雷"
+  },
+  {
+    "name": "ナヴィア",
+    "rarity": 5,
+    "element": "岩"
+  },
+  {
+    "name": "エミリエ",
+    "rarity": 5,
+    "element": "草"
+  },
+  {
+    "name": "エスコフィエ",
+    "rarity": 5,
+    "element": "氷"
+  },
+  {
+    "name": "ヌヴィレット",
+    "rarity": 5,
+    "element": "水"
+  },
+  {
+    "name": "リオセスリ",
+    "rarity": 5,
+    "element": "氷"
+  },
+  {
+    "name": "リネ",
+    "rarity": 5,
+    "element": "炎"
+  },
+  {
+    "name": "シグウィン",
+    "rarity": 5,
+    "element": "水"
+  },
+  {
+    "name": "シロネン",
+    "rarity": 5,
+    "element": "岩"
+  },
+  {
+    "name": "マーヴィカ",
+    "rarity": 5,
+    "element": "炎"
+  },
+  {
+    "name": "キィニチ",
+    "rarity": 5,
+    "element": "草"
+  },
+  {
+    "name": "ムアラニ",
+    "rarity": 5,
+    "element": "水"
+  },
+  {
+    "name": "ヴァレサ",
+    "rarity": 5,
+    "element": "雷"
+  },
+  {
+    "name": "シトラリ",
+    "rarity": 5,
+    "element": "氷"
+  },
+  {
+    "name": "チャスカ",
+    "rarity": 5,
+    "element": "風"
+  },
+  {
+    "name": "イネファ",
+    "rarity": 5,
+    "element": "雷"
+  },
+  {
+    "name": "フリンズ",
+    "rarity": 5,
+    "element": "雷"
+  },
+  {
+    "name": "ラウマ",
+    "rarity": 5,
+    "element": "草"
+  },
+  {
+    "name": "ネフェル",
+    "rarity": 5,
+    "element": "草"
+  },
+  {
+    "name": "アルレッキーノ",
+    "rarity": 5,
+    "element": "炎"
+  },
+  {
+    "name": "タルタリヤ",
+    "rarity": 5,
+    "element": "水"
+  },
+  {
+    "name": "ベネット",
+    "rarity": 4,
+    "element": "炎"
+  },
+  {
+    "name": "ダリア",
+    "rarity": 4,
+    "element": "水"
+  },
+  {
+    "name": "ガイア",
+    "rarity": 4,
+    "element": "氷"
+  },
+  {
+    "name": "レザー",
+    "rarity": 4,
+    "element": "雷"
+  },
+  {
+    "name": "ノエル",
+    "rarity": 4,
+    "element": "岩"
+  },
+  {
+    "name": "ロサリア",
+    "rarity": 4,
+    "element": "氷"
+  },
+  {
+    "name": "ミカ",
+    "rarity": 4,
+    "element": "氷"
+  },
+  {
+    "name": "バーバラ",
+    "rarity": 4,
+    "element": "水"
+  },
+  {
+    "name": "スクロース",
+    "rarity": 4,
+    "element": "風"
+  },
+  {
+    "name": "リサ",
+    "rarity": 4,
+    "element": "雷"
+  },
+  {
+    "name": "アンバー",
+    "rarity": 4,
+    "element": "炎"
+  },
+  {
+    "name": "フィッシュル",
+    "rarity": 4,
+    "element": "雷"
+  },
+  {
+    "name": "ディオナ",
+    "rarity": 4,
+    "element": "氷"
+  },
+  {
+    "name": "行秋",
+    "rarity": 4,
+    "element": "水"
+  },
+  {
+    "name": "辛炎",
+    "rarity": 4,
+    "element": "炎"
+  },
+  {
+    "name": "嘉明",
+    "rarity": 4,
+    "element": "炎"
+  },
+  {
+    "name": "北斗",
+    "rarity": 4,
+    "element": "雷"
+  },
+  {
+    "name": "重雲",
+    "rarity": 4,
+    "element": "氷"
+  },
+  {
+    "name": "香菱",
+    "rarity": 4,
+    "element": "炎"
+  },
+  {
+    "name": "ヨォーヨ",
+    "rarity": 4,
+    "element": "草"
+  },
+  {
+    "name": "雲菫",
+    "rarity": 4,
+    "element": "岩"
+  },
+  {
+    "name": "煙緋",
+    "rarity": 4,
+    "element": "炎"
+  },
+  {
+    "name": "藍硯",
+    "rarity": 4,
+    "element": "風"
+  },
+  {
+    "name": "凝光",
+    "rarity": 4,
+    "element": "岩"
+  },
+  {
+    "name": "久岐忍",
+    "rarity": 4,
+    "element": "雷"
+  },
+  {
+    "name": "綺良々",
+    "rarity": 4,
+    "element": "草"
+  },
+  {
+    "name": "早柚",
+    "rarity": 4,
+    "element": "風"
+  },
+  {
+    "name": "トーマ",
+    "rarity": 4,
+    "element": "炎"
+  },
+  {
+    "name": "鹿野院平蔵",
+    "rarity": 4,
+    "element": "風"
+  },
+  {
+    "name": "九条裟羅",
+    "rarity": 4,
+    "element": "雷"
+  },
+  {
+    "name": "ゴロー",
+    "rarity": 4,
+    "element": "岩"
+  },
+  {
+    "name": "レイラ",
+    "rarity": 4,
+    "element": "氷"
+  },
+  {
+    "name": "ドリー",
+    "rarity": 4,
+    "element": "雷"
+  },
+  {
+    "name": "カーヴェ",
+    "rarity": 4,
+    "element": "草"
+  },
+  {
+    "name": "キャンディス",
+    "rarity": 4,
+    "element": "水"
+  },
+  {
+    "name": "ファルザン",
+    "rarity": 4,
+    "element": "風"
+  },
+  {
+    "name": "セトス",
+    "rarity": 4,
+    "element": "雷"
+  },
+  {
+    "name": "コレイ",
+    "rarity": 4,
+    "element": "草"
+  },
+  {
+    "name": "リネット",
+    "rarity": 4,
+    "element": "風"
+  },
+  {
+    "name": "フレミネ",
+    "rarity": 4,
+    "element": "氷"
+  },
+  {
+    "name": "シュヴルーズ",
+    "rarity": 4,
+    "element": "炎"
+  },
+  {
+    "name": "シャルロット",
+    "rarity": 4,
+    "element": "氷"
+  },
+  {
+    "name": "イアンサ",
+    "rarity": 4,
+    "element": "雷"
+  },
+  {
+    "name": "カチーナ",
+    "rarity": 4,
+    "element": "岩"
+  },
+  {
+    "name": "イファ",
+    "rarity": 4,
+    "element": "風"
+  },
+  {
+    "name": "オロルン",
+    "rarity": 4,
+    "element": "雷"
+  },
+  {
+    "name": "アイノ",
+    "rarity": 4,
+    "element": "水"
+  },
+  {
+    "name": "ヤフォダ",
+    "rarity": 4,
+    "element": "風"
+  }
+]
