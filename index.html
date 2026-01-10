@@ -44,22 +44,14 @@
   </div>
 </div>
 
-<!-- キャラ所持設定 -->
-<div class="owned-section">
+<div class="owned-header">
   <h2 class="sub">キャラ所持設定</h2>
-  <button class="reset-btn small owned-reset" id="resetOwnedBtn">
-    所持設定リセット
-  </button>
+  <button class="reset-btn small" id="resetOwnedBtn">所持設定リセット</button>
 </div>
-
 <div id="grid" class="character-grid"></div>
 
-<!-- 抽選履歴 -->
 <div class="history">
   <h2>抽選履歴</h2>
-  <div class="history-note">
-    過去10件のみ保存。クリックすると抽選結果を復元できます。
-  </div>
   <div id="history"></div>
 </div>
 
@@ -134,6 +126,7 @@ drawBtn.onclick=()=>{
   const els=[...document.querySelectorAll('.el:checked')].map(e=>e.value);
   const isRedraw = lockTeamA || lockTeamB;
 
+  /* === 新規抽選 === */
   if(!isRedraw){
     pool.innerHTML=teamA.innerHTML=teamB.innerHTML='';
     lockTeamA=lockTeamB=false;
@@ -158,6 +151,7 @@ drawBtn.onclick=()=>{
     return;
   }
 
+  /* === ロックあり再抽選 === */
   pool.innerHTML='';
   if(!lockTeamA) teamA.innerHTML='';
   if(!lockTeamB) teamB.innerHTML='';
@@ -203,7 +197,7 @@ drawBtn.onclick=()=>{
   };
 });
 
-/* ===== ロック ===== */
+/* ===== ロック表示 ===== */
 function updateLocks(){
   lockA.textContent=lockTeamA?'🔒':'🔓';
   lockB.textContent=lockTeamB?'🔒':'🔓';
