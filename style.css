@@ -1,6 +1,5 @@
-/* 原神風ダークテーマ */
 :root{
-  --bg:#0f172a;
+  --bg:#020617;
   --panel:#1e293b;
   --border:#334155;
   --text:#e5e7eb;
@@ -14,41 +13,49 @@ body{
   padding:20px;
   font-family:"Segoe UI",sans-serif;
   background:radial-gradient(circle at top,#1e293b,#020617);
-  color:var(--text)
+  color:var(--text);
 }
 
 h1{
   text-align:center;
+  margin-bottom:20px;
   letter-spacing:.1em;
-  margin-bottom:20px
+}
+
+.sub{
+  text-align:center;
+  margin-top:30px;
 }
 
 .filters{
   display:flex;
   flex-wrap:wrap;
-  gap:10px;
+  gap:8px;
   justify-content:center;
-  margin-bottom:14px
+  margin-bottom:14px;
 }
+
 .filters label{
   background:var(--panel);
   border:1px solid var(--border);
   padding:6px 10px;
   border-radius:999px;
-  cursor:pointer
+  cursor:pointer;
 }
 
-.center{text-align:center;margin-bottom:10px}
+.center{
+  text-align:center;
+  margin-bottom:12px;
+}
 
 button{
   background:linear-gradient(135deg,#38bdf8,#0ea5e9);
   border:none;
-  color:#000;
-  padding:16px 36px;
   border-radius:999px;
-  font-weight:bold;
+  padding:16px 36px;
   font-size:20px;
-  cursor:pointer
+  font-weight:bold;
+  cursor:pointer;
 }
 
 .reset-btn{
@@ -56,16 +63,7 @@ button{
   color:#e5e7eb;
   font-size:14px;
   padding:10px 20px;
-  margin-left:10px
-}
-
-/* 抽選演出 */
-.shuffling{
-  animation:flash .2s linear infinite alternate
-}
-@keyframes flash{
-  from{opacity:.4}
-  to{opacity:1}
+  margin-left:10px;
 }
 
 .character-grid{
@@ -73,43 +71,48 @@ button{
   grid-template-columns:repeat(auto-fill,80px);
   gap:12px;
   justify-content:center;
-  margin-bottom:20px
 }
 
-.char{text-align:center;cursor:pointer}
+.char{
+  text-align:center;
+  cursor:pointer;
+}
+
 .char img{
   width:64px;
   height:64px;
   border-radius:12px;
-  box-shadow:0 0 12px #000a
+  box-shadow:0 0 12px #000a;
 }
+
 .char.off img{
-  filter:grayscale(100%) brightness(50%)
+  filter:grayscale(100%) brightness(50%);
 }
+
 .char span{
-  font-size:10px;
   display:block;
-  margin-top:4px
+  font-size:10px;
+  margin-top:4px;
 }
 
 .drag-area{
   display:flex;
   gap:20px;
-  flex-wrap:wrap
+  flex-wrap:wrap;
 }
 
 .box{
+  flex:1;
+  min-width:260px;
   background:var(--panel);
   border:1px solid var(--border);
   border-radius:14px;
   padding:12px;
-  flex:1;
-  min-width:260px
 }
 
 .box h2{
   text-align:center;
-  margin:6px 0 10px
+  margin:6px 0 10px;
 }
 
 .list{
@@ -119,7 +122,7 @@ button{
   padding:8px;
   display:grid;
   grid-template-columns:repeat(auto-fill,120px);
-  gap:6px
+  gap:6px;
 }
 
 .card{
@@ -127,13 +130,23 @@ button{
   align-items:center;
   background:#020617;
   border:1px solid var(--border);
-  padding:6px;
   border-radius:10px;
-  cursor:grab
+  padding:6px;
+  cursor:grab;
 }
+
 .card img{
   width:40px;
   height:40px;
   border-radius:8px;
-  margin-right:6px
+  margin-right:6px;
+}
+
+.shuffling{
+  animation:flash .2s linear infinite alternate;
+}
+
+@keyframes flash{
+  from{opacity:.4}
+  to{opacity:1}
 }
