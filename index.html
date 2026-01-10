@@ -23,9 +23,9 @@
 
 <div class="center">
   <button class="draw-btn" onclick="draw()">8人抽選</button>
+  <button class="reset-btn" onclick="resetTeams()">リセット</button>
 </div>
 
-<!-- 抽選結果をボタン直下に -->
 <div class="drag-area">
   <div class="box">
     <h2>抽選結果</h2>
@@ -102,13 +102,20 @@ function draw(){
 
   list.sort(()=>Math.random()-0.5).slice(0,8).forEach((c,i)=>{
     const d=document.createElement('div');
-    d.className='card';
+    d.className='card anim';
     d.id='c'+i;
     d.draggable=true;
     d.ondragstart=drag;
+    d.style.animationDelay=`${i*0.1}s`;
     d.innerHTML=`<img src="${img(c)}">${c.name}`;
     pool.appendChild(d);
   });
+}
+
+function resetTeams(){
+  pool.innerHTML='';
+  teamA.innerHTML='';
+  teamB.innerHTML='';
 }
 </script>
 </body>
