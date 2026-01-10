@@ -9,19 +9,16 @@
 
 <h1>深境螺旋 ランダム編成</h1>
 
-<!-- 所持キャラ -->
 <section>
   <h2>所持キャラ</h2>
   <div id="characterGrid" class="character-grid"></div>
   <button id="resetOwned" class="sub-btn">所持キャラリセット</button>
 </section>
 
-<!-- 抽選 -->
 <div class="center">
   <button id="drawBtn">抽選</button>
 </div>
 
-<!-- 編成 -->
 <div class="drag-area">
   <div class="box">
     <h2>前半 <button class="lock-btn" data-team="a">🔓</button></h2>
@@ -37,7 +34,6 @@
   <button id="resetTeams" class="sub-btn">編成リセット</button>
 </div>
 
-<!-- 履歴 -->
 <section>
   <div class="history-header">
     <h2>抽選履歴</h2>
@@ -47,14 +43,10 @@
 </section>
 
 <script>
-/* ===========================
-   キャラデータ（例）
-=========================== */
-const characters = window.characters; // characters.json を別途読み込み済み前提
-
-/* ===========================
+/* =====================
    状態
-=========================== */
+===================== */
+let characters = [];
 let owned = JSON.parse(localStorage.getItem("owned") || "[]");
 let history = JSON.parse(localStorage.getItem("history") || "[]");
 
@@ -65,9 +57,21 @@ let lockA = false;
 let lockB = false;
 let animating = false;
 
-/* ===========================
-   所持キャラ描画
-=========================== */
+/* =====================
+   初期ロード
+===================== */
+fetch("./characters.json")
+  .then(res => res.json())
+  .then(data => {
+    characters = data;
+    renderOwned();
+    renderHistory();
+    restoreFromURL();
+  });
+
+/* =====================
+   所持キャラ
+===================== */
 const grid = document.getElementById("characterGrid");
 
 function renderOwned(){
@@ -80,22 +84,19 @@ function renderOwned(){
       <span>${c.name}</span>
     `;
     div.onclick = ()=>{
-      if(owned.includes(c.name)){
-        owned = owned.filter(n=>n!==c.name);
-      }else{
-        owned.push(c.name);
-      }
+      owned.includes(c.name)
+        ? owned = owned.filter(n=>n!==c.name)
+        : owned.push(c.name);
       localStorage.setItem("owned", JSON.stringify(owned));
       renderOwned();
     };
     grid.appendChild(div);
   });
 }
-renderOwned();
 
-/* ===========================
+/* =====================
    抽選
-=========================== */
+===================== */
 document.getElementById("drawBtn").onclick = async ()=>{
   if(animating) return;
   if(owned.length < 8){
@@ -104,11 +105,11 @@ document.getElementById("drawBtn").onclick = async ()=>{
   }
 
   animating = true;
-  document.getElementById("drawBtn").disabled = true;
+  drawBtn.disabled = true;
 
+  result = [];
   teamA = [];
   teamB = [];
-  result = [];
 
   const pool = [...owned];
   shuffle(pool);
@@ -119,28 +120,21 @@ document.getElementById("drawBtn").onclick = async ()=>{
   history.unshift({ time:new Date().toLocaleString(), chars:selected });
   history = history.slice(0,10);
   localStorage.setItem("history", JSON.stringify(history));
-  history.replaceState(null,"","?"+params.toString());
+  history.replaceState(null,"","?"+params);
 
   for(const c of selected){
     await sleep(300);
     result.push(c);
-    renderResultTemp();
   }
 
   renderHistory();
   animating = false;
-  document.getElementById("drawBtn").disabled = false;
+  drawBtn.disabled = false;
 };
 
-function renderResultTemp(){
-  teamA = [];
-  teamB = [];
-  renderTeams();
-}
-
-/* ===========================
-   チーム描画 + DnD
-=========================== */
+/* =====================
+   チーム
+===================== */
 function renderTeams(){
   renderTeam("teamA", teamA, lockA);
   renderTeam("teamB", teamB, lockB);
@@ -177,14 +171,14 @@ function renderTeam(id, arr, locked){
 }
 
 function autoFill(){
-  if(teamA.length===4 && teamB.length<4){
+  if(teamA.length===4){
     while(teamB.length<4){
       const n = result.find(x=>!teamA.includes(x)&&!teamB.includes(x));
       if(!n) break;
       teamB.push(n);
     }
   }
-  if(teamB.length===4 && teamA.length<4){
+  if(teamB.length===4){
     while(teamA.length<4){
       const n = result.find(x=>!teamA.includes(x)&&!teamB.includes(x));
       if(!n) break;
@@ -193,24 +187,21 @@ function autoFill(){
   }
 }
 
-/* ===========================
+/* =====================
    ロック
-=========================== */
+===================== */
 document.querySelectorAll(".lock-btn").forEach(btn=>{
   btn.onclick=()=>{
-    if(btn.dataset.team==="a"){
-      lockA=!lockA;
-      btn.textContent=lockA?"🔒":"🔓";
-    }else{
-      lockB=!lockB;
-      btn.textContent=lockB?"🔒":"🔓";
-    }
+    btn.dataset.team==="a"
+      ? lockA=!lockA
+      : lockB=!lockB;
+    btn.textContent = btn.textContent==="🔓"?"🔒":"🔓";
   };
 });
 
-/* ===========================
+/* =====================
    履歴
-=========================== */
+===================== */
 function renderHistory(){
   const h=document.getElementById("history");
   h.innerHTML="";
@@ -226,33 +217,43 @@ function renderHistory(){
     h.appendChild(d);
   });
 }
-renderHistory();
 
-/* ===========================
+/* =====================
+   URL復元
+===================== */
+function restoreFromURL(){
+  const r = new URLSearchParams(location.search).get("r");
+  if(!r) return;
+  result = r.split(",");
+  autoFill();
+  renderTeams();
+}
+
+/* =====================
    リセット
-=========================== */
-document.getElementById("resetOwned").onclick=()=>{
+===================== */
+resetOwned.onclick=()=>{
   owned=[];
   localStorage.removeItem("owned");
   renderOwned();
 };
 
-document.getElementById("resetTeams").onclick=()=>{
+resetTeams.onclick=()=>{
   teamA=[];
   teamB=[];
   result=[];
   renderTeams();
 };
 
-document.getElementById("resetHistory").onclick=()=>{
+resetHistory.onclick=()=>{
   history=[];
   localStorage.removeItem("history");
   renderHistory();
 };
 
-/* ===========================
+/* =====================
    Utils
-=========================== */
+===================== */
 function shuffle(a){
   for(let i=a.length-1;i>0;i--){
     const j=Math.floor(Math.random()*(i+1));
@@ -261,6 +262,5 @@ function shuffle(a){
 }
 const sleep = ms=>new Promise(r=>setTimeout(r,ms));
 </script>
-
 </body>
 </html>
