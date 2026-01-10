@@ -34,12 +34,12 @@
   </div>
 
   <div class="box" id="boxA">
-    <h2>前半 <span id="lockA" class="lock unlocked">🔓</span></h2>
+    <h2>前半 <span id="lockA" class="lock">🔓</span></h2>
     <div id="teamA" class="list"></div>
   </div>
 
   <div class="box" id="boxB">
-    <h2>後半 <span id="lockB" class="lock unlocked">🔓</span></h2>
+    <h2>後半 <span id="lockB" class="lock">🔓</span></h2>
     <div id="teamB" class="list"></div>
   </div>
 </div>
@@ -121,12 +121,12 @@ function autoFillTeams(){
   }
 }
 
-/* ===== 抽選（新規 / 再抽選） ===== */
+/* ===== 抽選 ===== */
 drawBtn.onclick=()=>{
   const els=[...document.querySelectorAll('.el:checked')].map(e=>e.value);
   const isRedraw = lockTeamA || lockTeamB;
 
-  /* === 新規8人抽選 === */
+  /* === 新規抽選 === */
   if(!isRedraw){
     pool.innerHTML=teamA.innerHTML=teamB.innerHTML='';
     lockTeamA=lockTeamB=false;
@@ -145,14 +145,14 @@ drawBtn.onclick=()=>{
 
     const result=shuffle(base).slice(0,8).map(c=>c.name);
     result.forEach(n=>pool.appendChild(createCard(n)));
+
     saveHistory(result);
     updateURL(result);
     return;
   }
 
-  /* === 再抽選（poolに再生成） === */
+  /* === ロックあり再抽選 === */
   pool.innerHTML='';
-
   if(!lockTeamA) teamA.innerHTML='';
   if(!lockTeamB) teamB.innerHTML='';
 
@@ -170,8 +170,11 @@ drawBtn.onclick=()=>{
 
   const need=8-fixed.length;
   const draw=shuffle(base).slice(0,need).map(c=>c.name);
-
   draw.forEach(n=>pool.appendChild(createCard(n)));
+
+  const historySet=[...fixed, ...draw];
+  saveHistory(historySet);
+  updateURL(historySet);
 };
 
 /* ===== D&D ===== */
@@ -205,7 +208,7 @@ function updateLocks(){
 lockA.onclick=()=>{lockTeamA=!lockTeamA;updateLocks();}
 lockB.onclick=()=>{lockTeamB=!lockTeamB;updateLocks();}
 
-/* ===== 履歴・URL ===== */
+/* ===== 履歴 ===== */
 function saveHistory(arr){
   let h=JSON.parse(localStorage.getItem('history')||'[]');
   h.unshift({arr,time:Date.now()});
