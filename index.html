@@ -24,6 +24,7 @@
 
 <div class="center">
   <button id="drawBtn">8人抽選</button>
+  <button id="redrawBtn">再抽選</button>
   <button class="reset-btn" id="resetTeamBtn">編成リセット</button>
 </div>
 
@@ -32,12 +33,20 @@
     <h2>抽選結果</h2>
     <div id="pool" class="list"></div>
   </div>
+
   <div class="box">
-    <h2>前半</h2>
+    <h2>
+      前半
+      <span id="lockA" class="lock unlocked">🔓</span>
+    </h2>
     <div id="teamA" class="list"></div>
   </div>
+
   <div class="box">
-    <h2>後半</h2>
+    <h2>
+      後半
+      <span id="lockB" class="lock unlocked">🔓</span>
+    </h2>
     <div id="teamB" class="list"></div>
   </div>
 </div>
@@ -57,6 +66,8 @@
 let characters=[];
 let owned=new Set();
 let dragCard=null;
+let lockTeamA=false;
+let lockTeamB=false;
 
 const pool=document.getElementById('pool');
 const teamA=document.getElementById('teamA');
@@ -74,7 +85,7 @@ fetch('./characters.json')
   const saved=JSON.parse(localStorage.getItem('owned')||'[]');
   owned=new Set(saved.length?saved:characters.map(c=>c.name));
   renderGrid();
-  restoreFromURL();   // ★URL復元はここ
+  restoreFromURL();
   renderHistory();
 });
 
@@ -105,9 +116,21 @@ function createCard(name){
   return d;
 }
 
+/* ===== 自動振り分け ===== */
+function autoFillTeams(){
+  if(teamA.children.length===4 && teamB.children.length===0){
+    [...pool.children].forEach(c=>teamB.appendChild(c));
+  }
+  if(teamB.children.length===4 && teamA.children.length===0){
+    [...pool.children].forEach(c=>teamA.appendChild(c));
+  }
+}
+
 /* ===== 抽選 ===== */
 drawBtn.onclick=async()=>{
   pool.innerHTML=teamA.innerHTML=teamB.innerHTML='';
+  lockTeamA=lockTeamB=false;
+  updateLocks();
 
   const els=[...document.querySelectorAll('.el:checked')].map(e=>e.value);
   const base=characters.filter(c=>
@@ -151,21 +174,78 @@ drawBtn.onclick=async()=>{
   updateURL(result);
 };
 
+/* ===== 再抽選 ===== */
+redrawBtn.onclick=()=>{
+  const fixed=new Set([
+    ...(lockTeamA?[...teamA.children].map(c=>c.innerText):[]),
+    ...(lockTeamB?[...teamB.children].map(c=>c.innerText):[])
+  ]);
+
+  const els=[...document.querySelectorAll('.el:checked')].map(e=>e.value);
+
+  const base=characters.filter(c=>
+    owned.has(c.name)&&
+    els.includes(c.element)&&
+    ((c.rarity===4&&r4.checked)||(c.rarity===5&&r5.checked))&&
+    !fixed.has(c.name)
+  );
+
+  pool.innerHTML='';
+
+  if(!lockTeamA) teamA.innerHTML='';
+  if(!lockTeamB) teamB.innerHTML='';
+
+  const need=
+    (lockTeamA?0:4-teamA.children.length)+
+    (lockTeamB?0:4-teamB.children.length);
+
+  const draw=shuffle(base).slice(0,need);
+  let i=0;
+
+  if(!lockTeamA){
+    while(teamA.children.length<4){
+      teamA.appendChild(createCard(draw[i++]));
+    }
+  }
+  if(!lockTeamB){
+    while(teamB.children.length<4){
+      teamB.appendChild(createCard(draw[i++]));
+    }
+  }
+};
+
 /* ===== D&D ===== */
 [pool,teamA,teamB].forEach(list=>{
   list.ondragover=e=>e.preventDefault();
   list.ondrop=e=>{
     e.preventDefault();
     if(!dragCard)return;
+
+    if(list===teamA&&lockTeamA)return;
+    if(list===teamB&&lockTeamB)return;
+
     if(list!==pool && list.children.length>=4){
       alert('4人までです');
       return;
     }
+
     list.appendChild(dragCard);
+    autoFillTeams();
   };
 });
 
-/* ===== 履歴 ===== */
+/* ===== ロック ===== */
+function updateLocks(){
+  lockA.textContent=lockTeamA?'🔒':'🔓';
+  lockB.textContent=lockTeamB?'🔒':'🔓';
+  lockA.className='lock '+(lockTeamA?'locked':'unlocked');
+  lockB.className='lock '+(lockTeamB?'locked':'unlocked');
+}
+
+lockA.onclick=()=>{lockTeamA=!lockTeamA;updateLocks();}
+lockB.onclick=()=>{lockTeamB=!lockTeamB;updateLocks();}
+
+/* ===== 履歴・URL ===== */
 function saveHistory(arr){
   let h=JSON.parse(localStorage.getItem('history')||'[]');
   h.unshift({arr,time:Date.now()});
@@ -181,7 +261,6 @@ function renderHistory(){
     const d=document.createElement('div');
     d.className='history-item';
     d.onclick=()=>restore(x.arr);
-
     d.innerHTML=`
       <div class="history-time">${new Date(x.time).toLocaleString()}</div>
       <div class="history-icons">
@@ -197,7 +276,6 @@ function restore(arr){
   updateURL(arr);
 }
 
-/* ===== URL（8人のみ） ===== */
 function updateURL(arr){
   history.replaceState(null,'','?p='+arr.join(','));
 }
@@ -205,14 +283,14 @@ function updateURL(arr){
 function restoreFromURL(){
   const q=new URLSearchParams(location.search);
   if(!q.has('p'))return;
-  const arr=q.get('p').split(',');
-  pool.innerHTML='';
-  arr.forEach(n=>pool.appendChild(createCard(n)));
+  q.get('p').split(',').forEach(n=>pool.appendChild(createCard(n)));
 }
 
 /* ===== リセット ===== */
 resetTeamBtn.onclick=()=>{
   pool.innerHTML=teamA.innerHTML=teamB.innerHTML='';
+  lockTeamA=lockTeamB=false;
+  updateLocks();
   history.replaceState(null,'',location.pathname);
 };
 
