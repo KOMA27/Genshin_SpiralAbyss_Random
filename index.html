@@ -42,18 +42,21 @@
   </div>
 </div>
 
-<div class="history box">
-  <h2>抽選履歴</h2>
-  <ul id="history"></ul>
-</div>
-
 <div class="owned-header">
   <h2 class="sub">キャラ所持設定</h2>
   <button class="reset-btn small" id="resetOwnedBtn">所持設定リセット</button>
 </div>
 <div id="grid" class="character-grid"></div>
 
+<div class="history box">
+  <h2>抽選履歴</h2>
+  <div id="history"></div>
+</div>
+
 <script>
+/* =====================
+   グローバル
+===================== */
 let characters=[];
 let owned=new Set();
 let dragCard=null;
@@ -64,7 +67,9 @@ const teamB=document.getElementById('teamB');
 const grid=document.getElementById('grid');
 const historyEl=document.getElementById('history');
 
-/* ========= JSON ========= */
+/* =====================
+   JSON
+===================== */
 fetch('./characters.json')
 .then(r=>r.json())
 .then(data=>{
@@ -76,17 +81,19 @@ fetch('./characters.json')
   renderHistory();
 });
 
-function icon(c){
-  return `./icon/${c.name}_s.webp`;
+function icon(name){
+  return `./icon/${name}_s.webp`;
 }
 
-/* ========= 所持 ========= */
+/* =====================
+   所持設定
+===================== */
 function renderGrid(){
   grid.innerHTML='';
   characters.forEach(c=>{
     const d=document.createElement('div');
     d.className='char'+(owned.has(c.name)?'':' off');
-    d.innerHTML=`<img src="${icon(c)}"><span>${c.name}</span>`;
+    d.innerHTML=`<img src="${icon(c.name)}"><span>${c.name}</span>`;
     d.onclick=()=>{
       owned.has(c.name)?owned.delete(c.name):owned.add(c.name);
       localStorage.setItem('owned',JSON.stringify([...owned]));
@@ -96,19 +103,22 @@ function renderGrid(){
   });
 }
 
-/* ========= カード ========= */
+/* =====================
+   カード
+===================== */
 function createCard(name){
-  const c=characters.find(x=>x.name===name);
   const d=document.createElement('div');
   d.className='card';
-  d.innerHTML=`<img src="${icon(c)}">${name}`;
+  d.innerHTML=`<img src="${icon(name)}">${name}`;
   d.draggable=true;
   d.ondragstart=()=>dragCard=d;
   d.ondragend=()=>dragCard=null;
   return d;
 }
 
-/* ========= 抽選 ========= */
+/* =====================
+   抽選（アニメーション）
+===================== */
 document.getElementById('drawBtn').onclick=async()=>{
   pool.innerHTML=teamA.innerHTML=teamB.innerHTML='';
 
@@ -122,24 +132,55 @@ document.getElementById('drawBtn').onclick=async()=>{
     ((c.rarity===4&&r4)||(c.rarity===5&&r5))
   );
 
-  if(base.length<8){alert('抽選対象が8人未満です');return;}
+  if(base.length<8){
+    alert('抽選対象が8人未満です');
+    return;
+  }
 
   const result=shuffle(base).slice(0,8).map(c=>c.name);
-  pool.innerHTML='';
-  result.forEach(n=>pool.appendChild(createCard(n)));
+  const slots=[];
+  const active=Array(8).fill(true);
 
+  for(let i=0;i<8;i++){
+    const d=document.createElement('div');
+    d.className='card shuffling';
+    pool.appendChild(d);
+    slots.push(d);
+  }
+
+  const shuffleTimer=setInterval(()=>{
+    slots.forEach((s,i)=>{
+      if(!active[i])return;
+      const c=base[Math.floor(Math.random()*base.length)];
+      s.innerHTML=`<img src="${icon(c.name)}">${c.name}`;
+    });
+  },80);
+
+  for(let i=0;i<8;i++){
+    await sleep(300);
+    active[i]=false;
+    slots[i].classList.remove('shuffling');
+    slots[i].replaceWith(createCard(result[i]));
+    slots[i]=pool.children[i];
+  }
+
+  clearInterval(shuffleTimer);
   saveHistory(result,[],[]);
   updateURL(result,[],[]);
 };
 
-/* ========= D&D ========= */
+/* =====================
+   D&D
+===================== */
 [pool,teamA,teamB].forEach(list=>{
   list.ondragover=e=>e.preventDefault();
   list.ondrop=e=>{
     e.preventDefault();
     if(!dragCard)return;
+
     if(list!==pool && list.children.length>=4){
-      alert('4人までです');return;
+      alert('4人までです');
+      return;
     }
     list.appendChild(dragCard);
     sync();
@@ -150,11 +191,13 @@ function sync(){
   const p=[...pool.children].map(c=>c.textContent);
   const a=[...teamA.children].map(c=>c.textContent);
   const b=[...teamB.children].map(c=>c.textContent);
-  updateURL(p,a,b);
   saveHistory(p,a,b);
+  updateURL(p,a,b);
 }
 
-/* ========= 履歴 ========= */
+/* =====================
+   履歴（サムネ付き）
+===================== */
 function saveHistory(p,a,b){
   let h=JSON.parse(localStorage.getItem('history')||'[]');
   h.unshift({p,a,b,time:Date.now()});
@@ -166,11 +209,23 @@ function saveHistory(p,a,b){
 function renderHistory(){
   historyEl.innerHTML='';
   const h=JSON.parse(localStorage.getItem('history')||'[]');
-  h.forEach((x,i)=>{
-    const li=document.createElement('li');
-    li.textContent=new Date(x.time).toLocaleString();
-    li.onclick=()=>restore(x);
-    historyEl.appendChild(li);
+
+  h.forEach(x=>{
+    const div=document.createElement('div');
+    div.className='history-item';
+    div.onclick=()=>restore(x);
+
+    const makeRow = arr =>
+      arr.map(n=>`<img src="${icon(n)}">`).join('');
+
+    div.innerHTML=`
+      <div class="history-time">${new Date(x.time).toLocaleString()}</div>
+      <div class="history-teams">
+        <div>${makeRow(x.a)}</div>
+        <div>${makeRow(x.b)}</div>
+      </div>
+    `;
+    historyEl.appendChild(div);
   });
 }
 
@@ -182,7 +237,9 @@ function restore(x){
   updateURL(x.p,x.a,x.b);
 }
 
-/* ========= URL ========= */
+/* =====================
+   URL
+===================== */
 function updateURL(p,a,b){
   const q=new URLSearchParams();
   if(p.length)q.set('p',p.join(','));
@@ -200,7 +257,9 @@ function loadFromURL(){
   q.get('b')?.split(',').forEach(n=>teamB.appendChild(createCard(n)));
 }
 
-/* ========= リセット ========= */
+/* =====================
+   リセット
+===================== */
 document.getElementById('resetTeamBtn').onclick=()=>{
   pool.innerHTML=teamA.innerHTML=teamB.innerHTML='';
   history.replaceState(null,'',location.pathname);
@@ -212,8 +271,11 @@ document.getElementById('resetOwnedBtn').onclick=()=>{
   renderGrid();
 };
 
-/* ========= util ========= */
+/* =====================
+   util
+===================== */
 function shuffle(a){return [...a].sort(()=>Math.random()-0.5);}
+function sleep(ms){return new Promise(r=>setTimeout(r,ms));}
 </script>
 
 </body>
