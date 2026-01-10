@@ -1,4 +1,3 @@
-/* ===== 原神風ダークテーマ ===== */
 :root{
   --bg:#0f172a;
   --panel:#1e293b;
@@ -72,6 +71,19 @@ button{
   font-size:12px
 }
 
+/* ===== ロック ===== */
+.lock{
+  cursor:pointer;
+  margin-left:8px;
+  font-size:18px;
+}
+.lock.locked{
+  color:#facc15;
+}
+.lock.unlocked{
+  opacity:.6;
+}
+
 /* ===== 抽選アニメ ===== */
 .shuffling{
   animation:flash .2s linear infinite alternate
@@ -138,7 +150,7 @@ button{
   gap:6px
 }
 
-/* ★ 抽選結果キャラカード */
+/* ===== キャラカード ===== */
 .card{
   display:flex;
   align-items:center;
@@ -155,27 +167,18 @@ button{
   object-fit:cover
 }
 .card span{
-  font-size:10px;   /* ★ キャラ名を小さく */
+  font-size:10px;
   white-space:nowrap
 }
 
-/* ===== 所持設定 ===== */
-.owned-header{
-  display:flex;
-  align-items:center;
-  justify-content:center;
-  gap:10px;
-  margin-top:20px
-}
-
-/* ===== 抽選履歴（2列） ===== */
+/* ===== 履歴 ===== */
 .history{
   margin-top:30px
 }
 
 #history{
   display:grid;
-  grid-template-columns:repeat(2,1fr); /* ★ 2列 */
+  grid-template-columns:repeat(2,1fr);
   gap:10px;
 }
 
