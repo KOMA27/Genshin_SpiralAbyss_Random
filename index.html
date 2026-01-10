@@ -54,9 +54,6 @@
 </div>
 
 <script>
-/* =====================
-   グローバル
-===================== */
 let characters=[];
 let owned=new Set();
 let dragCard=null;
@@ -67,9 +64,6 @@ const teamB=document.getElementById('teamB');
 const grid=document.getElementById('grid');
 const historyEl=document.getElementById('history');
 
-/* =====================
-   JSON
-===================== */
 fetch('./characters.json')
 .then(r=>r.json())
 .then(data=>{
@@ -81,13 +75,8 @@ fetch('./characters.json')
   renderHistory();
 });
 
-function icon(name){
-  return `./icon/${name}_s.webp`;
-}
+const icon=n=>`./icon/${n}_s.webp`;
 
-/* =====================
-   所持設定
-===================== */
 function renderGrid(){
   grid.innerHTML='';
   characters.forEach(c=>{
@@ -103,9 +92,6 @@ function renderGrid(){
   });
 }
 
-/* =====================
-   カード
-===================== */
 function createCard(name){
   const d=document.createElement('div');
   d.className='card';
@@ -116,14 +102,12 @@ function createCard(name){
   return d;
 }
 
-/* =====================
-   抽選（アニメーション）
-===================== */
+/* ===== 抽選 ===== */
 document.getElementById('drawBtn').onclick=async()=>{
   pool.innerHTML=teamA.innerHTML=teamB.innerHTML='';
 
-  const r4=document.getElementById('r4').checked;
-  const r5=document.getElementById('r5').checked;
+  const r4=r4El.checked;
+  const r5=r5El.checked;
   const els=[...document.querySelectorAll('.el:checked')].map(e=>e.value);
 
   let base=characters.filter(c=>
@@ -138,8 +122,7 @@ document.getElementById('drawBtn').onclick=async()=>{
   }
 
   const result=shuffle(base).slice(0,8).map(c=>c.name);
-  const slots=[];
-  const active=Array(8).fill(true);
+  const slots=[],active=Array(8).fill(true);
 
   for(let i=0;i<8;i++){
     const d=document.createElement('div');
@@ -148,7 +131,7 @@ document.getElementById('drawBtn').onclick=async()=>{
     slots.push(d);
   }
 
-  const shuffleTimer=setInterval(()=>{
+  const timer=setInterval(()=>{
     slots.forEach((s,i)=>{
       if(!active[i])return;
       const c=base[Math.floor(Math.random()*base.length)];
@@ -161,46 +144,31 @@ document.getElementById('drawBtn').onclick=async()=>{
     active[i]=false;
     slots[i].classList.remove('shuffling');
     slots[i].replaceWith(createCard(result[i]));
-    slots[i]=pool.children[i];
   }
 
-  clearInterval(shuffleTimer);
-  saveHistory(result,[],[]);
-  updateURL(result,[],[]);
+  clearInterval(timer);
+  saveHistory(result);
+  updateURL(result);
 };
 
-/* =====================
-   D&D
-===================== */
+/* ===== D&D ===== */
 [pool,teamA,teamB].forEach(list=>{
   list.ondragover=e=>e.preventDefault();
   list.ondrop=e=>{
     e.preventDefault();
     if(!dragCard)return;
-
     if(list!==pool && list.children.length>=4){
       alert('4人までです');
       return;
     }
     list.appendChild(dragCard);
-    sync();
   };
 });
 
-function sync(){
-  const p=[...pool.children].map(c=>c.textContent);
-  const a=[...teamA.children].map(c=>c.textContent);
-  const b=[...teamB.children].map(c=>c.textContent);
-  saveHistory(p,a,b);
-  updateURL(p,a,b);
-}
-
-/* =====================
-   履歴（サムネ付き）
-===================== */
-function saveHistory(p,a,b){
+/* ===== 履歴（8人のみ） ===== */
+function saveHistory(arr){
   let h=JSON.parse(localStorage.getItem('history')||'[]');
-  h.unshift({p,a,b,time:Date.now()});
+  h.unshift({arr,time:Date.now()});
   h=h.slice(0,10);
   localStorage.setItem('history',JSON.stringify(h));
   renderHistory();
@@ -209,73 +177,49 @@ function saveHistory(p,a,b){
 function renderHistory(){
   historyEl.innerHTML='';
   const h=JSON.parse(localStorage.getItem('history')||'[]');
-
   h.forEach(x=>{
-    const div=document.createElement('div');
-    div.className='history-item';
-    div.onclick=()=>restore(x);
-
-    const makeRow = arr =>
-      arr.map(n=>`<img src="${icon(n)}">`).join('');
-
-    div.innerHTML=`
-      <div class="history-time">${new Date(x.time).toLocaleString()}</div>
-      <div class="history-teams">
-        <div>${makeRow(x.a)}</div>
-        <div>${makeRow(x.b)}</div>
-      </div>
-    `;
-    historyEl.appendChild(div);
+    const d=document.createElement('div');
+    d.className='history-item small';
+    d.onclick=()=>restore(x.arr);
+    d.innerHTML=x.arr.map(n=>`<img src="${icon(n)}">`).join('');
+    historyEl.appendChild(d);
   });
 }
 
-function restore(x){
+function restore(arr){
   pool.innerHTML=teamA.innerHTML=teamB.innerHTML='';
-  x.p.forEach(n=>pool.appendChild(createCard(n)));
-  x.a.forEach(n=>teamA.appendChild(createCard(n)));
-  x.b.forEach(n=>teamB.appendChild(createCard(n)));
-  updateURL(x.p,x.a,x.b);
+  arr.forEach(n=>pool.appendChild(createCard(n)));
+  updateURL(arr);
 }
 
-/* =====================
-   URL
-===================== */
-function updateURL(p,a,b){
+/* ===== URL ===== */
+function updateURL(arr){
   const q=new URLSearchParams();
-  if(p.length)q.set('p',p.join(','));
-  if(a.length)q.set('a',a.join(','));
-  if(b.length)q.set('b',b.join(','));
+  q.set('p',arr.join(','));
   history.replaceState(null,'','?'+q.toString());
 }
-
 function loadFromURL(){
   const q=new URLSearchParams(location.search);
-  if(!q.has('p')&&!q.has('a')&&!q.has('b'))return;
-  pool.innerHTML=teamA.innerHTML=teamB.innerHTML='';
-  q.get('p')?.split(',').forEach(n=>pool.appendChild(createCard(n)));
-  q.get('a')?.split(',').forEach(n=>teamA.appendChild(createCard(n)));
-  q.get('b')?.split(',').forEach(n=>teamB.appendChild(createCard(n)));
+  if(!q.has('p'))return;
+  pool.innerHTML='';
+  q.get('p').split(',').forEach(n=>pool.appendChild(createCard(n)));
 }
 
-/* =====================
-   リセット
-===================== */
-document.getElementById('resetTeamBtn').onclick=()=>{
+/* ===== リセット ===== */
+resetTeamBtn.onclick=()=>{
   pool.innerHTML=teamA.innerHTML=teamB.innerHTML='';
   history.replaceState(null,'',location.pathname);
 };
-
-document.getElementById('resetOwnedBtn').onclick=()=>{
+resetOwnedBtn.onclick=()=>{
   owned=new Set(characters.map(c=>c.name));
   localStorage.removeItem('owned');
   renderGrid();
 };
 
-/* =====================
-   util
-===================== */
-function shuffle(a){return [...a].sort(()=>Math.random()-0.5);}
-function sleep(ms){return new Promise(r=>setTimeout(r,ms));}
+const r4El=document.getElementById('r4');
+const r5El=document.getElementById('r5');
+const shuffle=a=>[...a].sort(()=>Math.random()-0.5);
+const sleep=ms=>new Promise(r=>setTimeout(r,ms));
 </script>
 
 </body>
