@@ -53,9 +53,9 @@
 <div id="grid" class="character-grid"></div>
 
 <script>
-/* =======================
-   効果音
-======================= */
+/* =====================
+   効果音（改良版）
+===================== */
 let audioCtx;
 let seEnabled = JSON.parse(localStorage.getItem('seEnabled') ?? 'true');
 const seToggle = document.getElementById('seToggle');
@@ -66,45 +66,62 @@ seToggle.onchange = () => {
   localStorage.setItem('seEnabled', JSON.stringify(seEnabled));
 };
 
-function playSE(){
-  if(!seEnabled) return;
-
+function initAudio(){
   if(!audioCtx){
     audioCtx = new (window.AudioContext || window.webkitAudioContext)();
   }
+}
+
+/* 抽選中：超軽い「シュ…」 */
+function playShuffleSE(){
+  if(!seEnabled) return;
+  initAudio();
+
+  const now = audioCtx.currentTime;
+  const noise = audioCtx.createBufferSource();
+  const buffer = audioCtx.createBuffer(1, audioCtx.sampleRate * 0.05, audioCtx.sampleRate);
+  const data = buffer.getChannelData(0);
+  for(let i=0;i<data.length;i++){
+    data[i] = Math.random()*2-1;
+  }
+  noise.buffer = buffer;
+
+  const filter = audioCtx.createBiquadFilter();
+  filter.type = 'highpass';
+  filter.frequency.value = 2000;
+
+  const gain = audioCtx.createGain();
+  gain.gain.value = 0.015;
+
+  noise.connect(filter).connect(gain).connect(audioCtx.destination);
+  noise.start();
+}
+
+/* 決定音：キレのある「シュッ！」 */
+function playDecideSE(){
+  if(!seEnabled) return;
+  initAudio();
 
   const now = audioCtx.currentTime;
 
-  const osc1 = audioCtx.createOscillator();
-  const osc2 = audioCtx.createOscillator();
+  const osc = audioCtx.createOscillator();
+  osc.type = 'triangle';
+  osc.frequency.setValueAtTime(1600, now);
+  osc.frequency.exponentialRampToValueAtTime(600, now + 0.08);
+
   const gain = audioCtx.createGain();
+  gain.gain.setValueAtTime(0.001, now);
+  gain.gain.exponentialRampToValueAtTime(0.12, now + 0.02);
+  gain.gain.exponentialRampToValueAtTime(0.001, now + 0.1);
 
-  osc1.type = 'sawtooth';
-  osc2.type = 'triangle';
-
-  osc1.frequency.setValueAtTime(2400, now);
-  osc1.frequency.exponentialRampToValueAtTime(600, now + 0.18);
-
-  osc2.frequency.setValueAtTime(1200, now);
-  osc2.frequency.exponentialRampToValueAtTime(300, now + 0.18);
-
-  gain.gain.setValueAtTime(0.0001, now);
-  gain.gain.exponentialRampToValueAtTime(0.3, now + 0.03);
-  gain.gain.exponentialRampToValueAtTime(0.0001, now + 0.2);
-
-  osc1.connect(gain);
-  osc2.connect(gain);
-  gain.connect(audioCtx.destination);
-
-  osc1.start(now);
-  osc2.start(now);
-  osc1.stop(now + 0.22);
-  osc2.stop(now + 0.22);
+  osc.connect(gain).connect(audioCtx.destination);
+  osc.start();
+  osc.stop(now + 0.12);
 }
 
-/* =======================
+/* =====================
    グローバル
-======================= */
+===================== */
 let characters=[];
 let owned=new Set();
 let dragCard=null;
@@ -114,9 +131,9 @@ const teamA=document.getElementById('teamA');
 const teamB=document.getElementById('teamB');
 const grid=document.getElementById('grid');
 
-/* =======================
-   JSON 読み込み
-======================= */
+/* =====================
+   JSON
+===================== */
 fetch('./characters.json')
 .then(r=>r.json())
 .then(data=>{
@@ -130,9 +147,9 @@ function icon(c){
   return `./icon/${c.name}_s.webp`;
 }
 
-/* =======================
+/* =====================
    所持設定
-======================= */
+===================== */
 function renderGrid(){
   grid.innerHTML='';
   characters.forEach(c=>{
@@ -148,9 +165,9 @@ function renderGrid(){
   });
 }
 
-/* =======================
+/* =====================
    カード
-======================= */
+===================== */
 function createCard(c){
   const d=document.createElement('div');
   d.className='card';
@@ -161,9 +178,9 @@ function createCard(c){
   return d;
 }
 
-/* =======================
+/* =====================
    抽選
-======================= */
+===================== */
 document.getElementById('drawBtn').onclick=async()=>{
   pool.innerHTML=teamA.innerHTML=teamB.innerHTML='';
 
@@ -190,28 +207,29 @@ document.getElementById('drawBtn').onclick=async()=>{
     slots.push(d);
   }
 
-  const timer=setInterval(()=>{
+  const shuffleTimer=setInterval(()=>{
+    playShuffleSE();
     slots.forEach((s,i)=>{
       if(!active[i])return;
       const c=base[Math.floor(Math.random()*base.length)];
       s.innerHTML=`<img src="${icon(c)}">${c.name}`;
     });
-  },70);
+  },150);
 
   for(let i=0;i<8;i++){
     await sleep(300);
     active[i]=false;
-    playSE();
+    playDecideSE();
     slots[i].classList.remove('shuffling');
     slots[i].replaceWith(createCard(result[i]));
     slots[i]=pool.children[i];
   }
-  clearInterval(timer);
+  clearInterval(shuffleTimer);
 };
 
-/* =======================
+/* =====================
    D&D
-======================= */
+===================== */
 [pool,teamA,teamB].forEach(list=>{
   list.ondragover=e=>e.preventDefault();
   list.ondrop=e=>{
@@ -229,9 +247,9 @@ document.getElementById('drawBtn').onclick=async()=>{
   };
 });
 
-/* =======================
+/* =====================
    リセット
-======================= */
+===================== */
 document.getElementById('resetResultBtn').onclick=()=>{
   pool.innerHTML=teamA.innerHTML=teamB.innerHTML='';
 };
@@ -242,9 +260,9 @@ document.getElementById('resetOwnedBtn').onclick=()=>{
   renderGrid();
 };
 
-/* =======================
+/* =====================
    util
-======================= */
+===================== */
 function shuffle(a){return [...a].sort(()=>Math.random()-0.5);}
 function sleep(ms){return new Promise(r=>setTimeout(r,ms));}
 </script>
