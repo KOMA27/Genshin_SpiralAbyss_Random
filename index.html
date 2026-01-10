@@ -46,17 +46,39 @@
 <div id="grid" class="character-grid"></div>
 
 <script>
-/* ===== グローバル ===== */
+/* ========= SE (Web Audio API) ========= */
+let audioCtx;
+function playSE(){
+  if(!audioCtx){
+    audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+  }
+  const o = audioCtx.createOscillator();
+  const g = audioCtx.createGain();
+
+  o.type = 'triangle';
+  o.frequency.setValueAtTime(1800, audioCtx.currentTime);
+  o.frequency.exponentialRampToValueAtTime(900, audioCtx.currentTime + 0.08);
+
+  g.gain.setValueAtTime(0.25, audioCtx.currentTime);
+  g.gain.exponentialRampToValueAtTime(0.001, audioCtx.currentTime + 0.08);
+
+  o.connect(g).connect(audioCtx.destination);
+  o.start();
+  o.stop(audioCtx.currentTime + 0.08);
+}
+
+/* ========= グローバル ========= */
 let characters = [];
 let owned = new Set();
+let dragCard = null;
 
-/* ===== DOM ===== */
+/* ========= DOM ========= */
 const pool = document.getElementById('pool');
 const teamA = document.getElementById('teamA');
 const teamB = document.getElementById('teamB');
 const grid = document.getElementById('grid');
 
-/* ===== JSON ===== */
+/* ========= JSON ========= */
 fetch('./characters.json')
   .then(r => r.json())
   .then(data => {
@@ -70,7 +92,7 @@ function icon(c){
   return `./icon/${c.name}_s.webp`;
 }
 
-/* ===== キャラ所持設定 ===== */
+/* ========= 所持設定 ========= */
 function renderGrid(){
   grid.innerHTML='';
   characters.forEach(c=>{
@@ -86,7 +108,25 @@ function renderGrid(){
   });
 }
 
-/* ===== 抽選 ===== */
+/* ========= カード ========= */
+function createCard(c){
+  const d=document.createElement('div');
+  d.className='card';
+  d.innerHTML=`<img src="${icon(c)}">${c.name}`;
+  d.draggable=true;
+
+  d.ondragstart=()=>{
+    dragCard=d;
+    setTimeout(()=>d.classList.add('dragging'),0);
+  };
+  d.ondragend=()=>{
+    dragCard=null;
+    d.classList.remove('dragging');
+  };
+  return d;
+}
+
+/* ========= 抽選 ========= */
 document.getElementById('drawBtn').onclick = async ()=>{
   pool.innerHTML = teamA.innerHTML = teamB.innerHTML = '';
 
@@ -106,7 +146,6 @@ document.getElementById('drawBtn').onclick = async ()=>{
   }
 
   const result = shuffle(base).slice(0,8);
-
   const slots=[];
   const active = Array(8).fill(true);
 
@@ -118,7 +157,6 @@ document.getElementById('drawBtn').onclick = async ()=>{
     slots.push(d);
   }
 
-  /* シャッフル演出 */
   const timer=setInterval(()=>{
     slots.forEach((s,i)=>{
       if(!active[i]) return;
@@ -127,22 +165,42 @@ document.getElementById('drawBtn').onclick = async ()=>{
     });
   },80);
 
-  /* 0.3秒ごとに1人ずつ確定 */
   for(let i=0;i<8;i++){
     await sleep(300);
     active[i]=false;
+    playSE();               // ← ★ここでSE
     slots[i].classList.remove('shuffling');
-    slots[i].innerHTML=`<img src="${icon(result[i])}">${result[i].name}`;
+    slots[i].replaceWith(createCard(result[i]));
+    slots[i]=pool.children[i];
   }
 
   clearInterval(timer);
-
-  slots.forEach(s=>{
-    s.draggable=true;
-  });
 };
 
-/* ===== リセット ===== */
+/* ========= D&D ========= */
+[pool, teamA, teamB].forEach(list=>{
+  list.ondragover=e=>e.preventDefault();
+  list.ondrop=e=>{
+    e.preventDefault();
+    if(!dragCard) return;
+
+    if(list!==pool && list.children.length>=4){
+      alert('4人までです');
+      return;
+    }
+
+    list.appendChild(dragCard);
+
+    if(teamA.children.length===4){
+      [...pool.children].forEach(c=>teamB.appendChild(c));
+    }
+    if(teamB.children.length===4){
+      [...pool.children].forEach(c=>teamA.appendChild(c));
+    }
+  };
+});
+
+/* ========= リセット ========= */
 document.getElementById('resetBtn').onclick=()=>{
   owned=new Set(characters.map(c=>c.name));
   localStorage.removeItem('owned');
@@ -150,7 +208,7 @@ document.getElementById('resetBtn').onclick=()=>{
   renderGrid();
 };
 
-/* ===== util ===== */
+/* ========= util ========= */
 function shuffle(a){return [...a].sort(()=>Math.random()-0.5);}
 function sleep(ms){return new Promise(r=>setTimeout(r,ms));}
 </script>
