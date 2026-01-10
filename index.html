@@ -74,7 +74,7 @@ fetch('./characters.json')
   const saved=JSON.parse(localStorage.getItem('owned')||'[]');
   owned=new Set(saved.length?saved:characters.map(c=>c.name));
   renderGrid();
-  restoreFromURL();   // ★URL復元はここ
+  restoreFromURL();
   renderHistory();
 });
 
@@ -165,9 +165,11 @@ drawBtn.onclick=async()=>{
   };
 });
 
-/* ===== 履歴 ===== */
+/* ===== 履歴（安全化） ===== */
 function saveHistory(arr){
-  let h=JSON.parse(localStorage.getItem('history')||'[]');
+  if(!Array.isArray(arr)) return;
+  let h=JSON.parse(localStorage.getItem('history')||'[]')
+    .filter(x=>Array.isArray(x.arr));
   h.unshift({arr,time:Date.now()});
   h=h.slice(0,10);
   localStorage.setItem('history',JSON.stringify(h));
@@ -176,12 +178,12 @@ function saveHistory(arr){
 
 function renderHistory(){
   historyEl.innerHTML='';
-  const h=JSON.parse(localStorage.getItem('history')||'[]');
+  const h=JSON.parse(localStorage.getItem('history')||'[]')
+    .filter(x=>Array.isArray(x.arr));
   h.forEach(x=>{
     const d=document.createElement('div');
     d.className='history-item';
     d.onclick=()=>restore(x.arr);
-
     d.innerHTML=`
       <div class="history-time">${new Date(x.time).toLocaleString()}</div>
       <div class="history-icons">
@@ -197,14 +199,14 @@ function restore(arr){
   updateURL(arr);
 }
 
-/* ===== URL（8人のみ） ===== */
+/* ===== URL（p のみ） ===== */
 function updateURL(arr){
   history.replaceState(null,'','?p='+arr.join(','));
 }
 
 function restoreFromURL(){
   const q=new URLSearchParams(location.search);
-  if(!q.has('p'))return;
+  if(!q.has('p')) return;
   const arr=q.get('p').split(',');
   pool.innerHTML='';
   arr.forEach(n=>pool.appendChild(createCard(n)));
