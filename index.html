@@ -24,11 +24,7 @@
 
 <div class="center">
   <button id="drawBtn">8人抽選</button>
-  <button class="reset-btn" id="resetResultBtn">抽選結果リセット</button>
-
-  <label class="se-toggle">
-    <input type="checkbox" id="seToggle"> 効果音
-  </label>
+  <button class="reset-btn" id="resetTeamBtn">編成リセット</button>
 </div>
 
 <div class="drag-area">
@@ -54,72 +50,6 @@
 
 <script>
 /* =====================
-   効果音（改良版）
-===================== */
-let audioCtx;
-let seEnabled = JSON.parse(localStorage.getItem('seEnabled') ?? 'true');
-const seToggle = document.getElementById('seToggle');
-seToggle.checked = seEnabled;
-
-seToggle.onchange = () => {
-  seEnabled = seToggle.checked;
-  localStorage.setItem('seEnabled', JSON.stringify(seEnabled));
-};
-
-function initAudio(){
-  if(!audioCtx){
-    audioCtx = new (window.AudioContext || window.webkitAudioContext)();
-  }
-}
-
-/* 抽選中：超軽い「シュ…」 */
-function playShuffleSE(){
-  if(!seEnabled) return;
-  initAudio();
-
-  const now = audioCtx.currentTime;
-  const noise = audioCtx.createBufferSource();
-  const buffer = audioCtx.createBuffer(1, audioCtx.sampleRate * 0.05, audioCtx.sampleRate);
-  const data = buffer.getChannelData(0);
-  for(let i=0;i<data.length;i++){
-    data[i] = Math.random()*2-1;
-  }
-  noise.buffer = buffer;
-
-  const filter = audioCtx.createBiquadFilter();
-  filter.type = 'highpass';
-  filter.frequency.value = 2000;
-
-  const gain = audioCtx.createGain();
-  gain.gain.value = 0.015;
-
-  noise.connect(filter).connect(gain).connect(audioCtx.destination);
-  noise.start();
-}
-
-/* 決定音：キレのある「シュッ！」 */
-function playDecideSE(){
-  if(!seEnabled) return;
-  initAudio();
-
-  const now = audioCtx.currentTime;
-
-  const osc = audioCtx.createOscillator();
-  osc.type = 'triangle';
-  osc.frequency.setValueAtTime(1600, now);
-  osc.frequency.exponentialRampToValueAtTime(600, now + 0.08);
-
-  const gain = audioCtx.createGain();
-  gain.gain.setValueAtTime(0.001, now);
-  gain.gain.exponentialRampToValueAtTime(0.12, now + 0.02);
-  gain.gain.exponentialRampToValueAtTime(0.001, now + 0.1);
-
-  osc.connect(gain).connect(audioCtx.destination);
-  osc.start();
-  osc.stop(now + 0.12);
-}
-
-/* =====================
    グローバル
 ===================== */
 let characters=[];
@@ -132,7 +62,7 @@ const teamB=document.getElementById('teamB');
 const grid=document.getElementById('grid');
 
 /* =====================
-   JSON
+   JSON 読み込み
 ===================== */
 fetch('./characters.json')
 .then(r=>r.json())
@@ -194,7 +124,10 @@ document.getElementById('drawBtn').onclick=async()=>{
     ((c.rarity===4&&r4)||(c.rarity===5&&r5))
   );
 
-  if(base.length<8){alert('抽選対象が8人未満です');return;}
+  if(base.length<8){
+    alert('抽選対象が8人未満です');
+    return;
+  }
 
   const result=shuffle(base).slice(0,8);
   const slots=[];
@@ -207,24 +140,22 @@ document.getElementById('drawBtn').onclick=async()=>{
     slots.push(d);
   }
 
-  const shuffleTimer=setInterval(()=>{
-    playShuffleSE();
+  const timer=setInterval(()=>{
     slots.forEach((s,i)=>{
       if(!active[i])return;
       const c=base[Math.floor(Math.random()*base.length)];
       s.innerHTML=`<img src="${icon(c)}">${c.name}`;
     });
-  },150);
+  },80);
 
   for(let i=0;i<8;i++){
     await sleep(300);
     active[i]=false;
-    playDecideSE();
     slots[i].classList.remove('shuffling');
     slots[i].replaceWith(createCard(result[i]));
     slots[i]=pool.children[i];
   }
-  clearInterval(shuffleTimer);
+  clearInterval(timer);
 };
 
 /* =====================
@@ -235,9 +166,12 @@ document.getElementById('drawBtn').onclick=async()=>{
   list.ondrop=e=>{
     e.preventDefault();
     if(!dragCard)return;
+
     if(list!==pool && list.children.length>=4){
-      alert('4人までです');return;
+      alert('4人までです');
+      return;
     }
+
     list.appendChild(dragCard);
 
     if(teamA.children.length===4)
@@ -250,10 +184,12 @@ document.getElementById('drawBtn').onclick=async()=>{
 /* =====================
    リセット
 ===================== */
-document.getElementById('resetResultBtn').onclick=()=>{
+// 編成リセット
+document.getElementById('resetTeamBtn').onclick=()=>{
   pool.innerHTML=teamA.innerHTML=teamB.innerHTML='';
 };
 
+// 所持設定リセット
 document.getElementById('resetOwnedBtn').onclick=()=>{
   owned=new Set(characters.map(c=>c.name));
   localStorage.removeItem('owned');
