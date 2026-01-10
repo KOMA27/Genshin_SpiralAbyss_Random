@@ -20,12 +20,11 @@ h1{text-align:center;margin-bottom:20px}
 
 .filters{
   display:flex;
-  gap:8px;
   flex-wrap:wrap;
+  gap:8px;
   justify-content:center;
   margin-bottom:12px;
 }
-
 .filters label{
   background:var(--panel);
   border:1px solid var(--border);
@@ -33,7 +32,7 @@ h1{text-align:center;margin-bottom:20px}
   border-radius:999px;
 }
 
-.center{text-align:center;margin-bottom:14px}
+.center{text-align:center;margin-bottom:12px}
 
 button{
   background:linear-gradient(135deg,#38bdf8,#0ea5e9);
@@ -43,6 +42,7 @@ button{
   border-radius:999px;
   cursor:pointer;
 }
+button:disabled{opacity:.5;cursor:not-allowed}
 
 .reset-btn{
   background:#475569;
@@ -94,7 +94,7 @@ button{
   margin-right:6px;
 }
 
-.shuffling{opacity:.5}
+.shuffling{opacity:.4}
 
 .owned-header{
   display:flex;
@@ -108,28 +108,42 @@ button{
   grid-template-columns:repeat(auto-fill,80px);
   gap:12px;
   justify-content:center;
-  pointer-events:auto;
 }
 
-.char{
-  text-align:center;
-  cursor:pointer;
-  position:relative;
-  z-index:1;
-}
-
+.char{text-align:center;cursor:pointer}
 .char img{
   width:64px;
   height:64px;
   border-radius:12px;
 }
-
 .char span{
   font-size:10px;
   display:block;
   margin-top:4px;
 }
+.char.off img{filter:grayscale(100%) brightness(50%)}
 
-.char.off img{
-  filter:grayscale(100%) brightness(50%);
+.history{margin-top:30px}
+.history-grid{
+  display:grid;
+  grid-template-columns:repeat(2,1fr);
+  gap:10px;
+}
+.history-item{
+  background:var(--panel);
+  border:1px solid var(--border);
+  border-radius:10px;
+  padding:6px;
+  cursor:pointer;
+}
+.history-time{
+  font-size:10px;
+  opacity:.7;
+  margin-bottom:4px;
+}
+.history-icons img{
+  width:28px;
+  height:28px;
+  border-radius:6px;
+  margin:2px;
 }
