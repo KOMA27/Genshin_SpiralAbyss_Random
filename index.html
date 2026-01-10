@@ -121,14 +121,13 @@ function autoFillTeams(){
   }
 }
 
-/* ===== 抽選（新規 / 再抽選統合） ===== */
-drawBtn.onclick=async()=>{
+/* ===== 抽選（新規 / 再抽選） ===== */
+drawBtn.onclick=()=>{
+  const els=[...document.querySelectorAll('.el:checked')].map(e=>e.value);
   const isRedraw = lockTeamA || lockTeamB;
 
-  const els=[...document.querySelectorAll('.el:checked')].map(e=>e.value);
-
+  /* === 新規8人抽選 === */
   if(!isRedraw){
-    // --- 新規8人抽選 ---
     pool.innerHTML=teamA.innerHTML=teamB.innerHTML='';
     lockTeamA=lockTeamB=false;
     updateLocks();
@@ -145,49 +144,34 @@ drawBtn.onclick=async()=>{
     }
 
     const result=shuffle(base).slice(0,8).map(c=>c.name);
-
-    for(const n of result){
-      pool.appendChild(createCard(n));
-    }
-
+    result.forEach(n=>pool.appendChild(createCard(n)));
     saveHistory(result);
     updateURL(result);
     return;
   }
 
-  // --- 再抽選 ---
-  const fixed=new Set([
+  /* === 再抽選（poolに再生成） === */
+  pool.innerHTML='';
+
+  if(!lockTeamA) teamA.innerHTML='';
+  if(!lockTeamB) teamB.innerHTML='';
+
+  const fixed=[
     ...(lockTeamA?[...teamA.children].map(c=>c.innerText):[]),
     ...(lockTeamB?[...teamB.children].map(c=>c.innerText):[])
-  ]);
+  ];
 
   const base=characters.filter(c=>
     owned.has(c.name)&&
     els.includes(c.element)&&
     ((c.rarity===4&&r4.checked)||(c.rarity===5&&r5.checked))&&
-    !fixed.has(c.name)
+    !fixed.includes(c.name)
   );
 
-  if(!lockTeamA) teamA.innerHTML='';
-  if(!lockTeamB) teamB.innerHTML='';
-
-  const need=
-    (lockTeamA?0:4-teamA.children.length)+
-    (lockTeamB?0:4-teamB.children.length);
-
+  const need=8-fixed.length;
   const draw=shuffle(base).slice(0,need).map(c=>c.name);
 
-  let i=0;
-  if(!lockTeamA){
-    while(teamA.children.length<4){
-      teamA.appendChild(createCard(draw[i++]));
-    }
-  }
-  if(!lockTeamB){
-    while(teamB.children.length<4){
-      teamB.appendChild(createCard(draw[i++]));
-    }
-  }
+  draw.forEach(n=>pool.appendChild(createCard(n)));
 };
 
 /* ===== D&D ===== */
@@ -210,7 +194,7 @@ drawBtn.onclick=async()=>{
   };
 });
 
-/* ===== ロック ===== */
+/* ===== ロック表示 ===== */
 function updateLocks(){
   lockA.textContent=lockTeamA?'🔒':'🔓';
   lockB.textContent=lockTeamB?'🔒':'🔓';
