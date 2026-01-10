@@ -77,6 +77,7 @@ fetch('./characters.json')
 
 const icon=n=>`./icon/${n}_s.webp`;
 
+/* ===== 所持設定 ===== */
 function renderGrid(){
   grid.innerHTML='';
   characters.forEach(c=>{
@@ -92,10 +93,11 @@ function renderGrid(){
   });
 }
 
+/* ===== カード ===== */
 function createCard(name){
   const d=document.createElement('div');
   d.className='card';
-  d.innerHTML=`<img src="${icon(name)}">${name}`;
+  d.innerHTML=`<img src="${icon(name)}"><span>${name}</span>`;
   d.draggable=true;
   d.ondragstart=()=>dragCard=d;
   d.ondragend=()=>dragCard=null;
@@ -103,7 +105,7 @@ function createCard(name){
 }
 
 /* ===== 抽選 ===== */
-document.getElementById('drawBtn').onclick=async()=>{
+drawBtn.onclick=async()=>{
   pool.innerHTML=teamA.innerHTML=teamB.innerHTML='';
 
   const r4=r4El.checked;
@@ -122,8 +124,8 @@ document.getElementById('drawBtn').onclick=async()=>{
   }
 
   const result=shuffle(base).slice(0,8).map(c=>c.name);
-  const slots=[],active=Array(8).fill(true);
 
+  const slots=[],active=Array(8).fill(true);
   for(let i=0;i<8;i++){
     const d=document.createElement('div');
     d.className='card shuffling';
@@ -135,7 +137,7 @@ document.getElementById('drawBtn').onclick=async()=>{
     slots.forEach((s,i)=>{
       if(!active[i])return;
       const c=base[Math.floor(Math.random()*base.length)];
-      s.innerHTML=`<img src="${icon(c.name)}">${c.name}`;
+      s.innerHTML=`<img src="${icon(c.name)}"><span>${c.name}</span>`;
     });
   },80);
 
@@ -165,7 +167,7 @@ document.getElementById('drawBtn').onclick=async()=>{
   };
 });
 
-/* ===== 履歴（8人のみ） ===== */
+/* ===== 履歴 ===== */
 function saveHistory(arr){
   let h=JSON.parse(localStorage.getItem('history')||'[]');
   h.unshift({arr,time:Date.now()});
@@ -179,9 +181,19 @@ function renderHistory(){
   const h=JSON.parse(localStorage.getItem('history')||'[]');
   h.forEach(x=>{
     const d=document.createElement('div');
-    d.className='history-item small';
+    d.className='history-item';
     d.onclick=()=>restore(x.arr);
-    d.innerHTML=x.arr.map(n=>`<img src="${icon(n)}">`).join('');
+
+    const time=document.createElement('div');
+    time.className='history-time';
+    time.textContent=new Date(x.time).toLocaleString();
+
+    const icons=document.createElement('div');
+    icons.className='history-icons';
+    icons.innerHTML=x.arr.map(n=>`<img src="${icon(n)}">`).join('');
+
+    d.appendChild(time);
+    d.appendChild(icons);
     historyEl.appendChild(d);
   });
 }
@@ -201,7 +213,6 @@ function updateURL(arr){
 function loadFromURL(){
   const q=new URLSearchParams(location.search);
   if(!q.has('p'))return;
-  pool.innerHTML='';
   q.get('p').split(',').forEach(n=>pool.appendChild(createCard(n)));
 }
 
