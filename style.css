@@ -1,6 +1,3 @@
-/* ===============================
-   原神風 ダークテーマ
-================================ */
 :root{
   --bg:#0f172a;
   --panel:#1e293b;
@@ -9,84 +6,166 @@
   --accent:#38bdf8;
 }
 
-*{
-  box-sizing:border-box;
-}
+*{box-sizing:border-box}
 
 body{
   margin:0;
   padding:20px;
-  font-family:"Segoe UI","Hiragino Kaku Gothic ProN",sans-serif;
   background:radial-gradient(circle at top,#1e293b,#020617);
   color:var(--text);
+  font-family:"Segoe UI",sans-serif;
 }
 
-h1{
-  text-align:center;
-  letter-spacing:.1em;
-  margin-bottom:20px;
-}
+h1{text-align:center;margin-bottom:16px}
 
-h2{
-  margin:6px 0 10px;
-  text-align:center;
-}
-
-.sub{
-  margin-top:30px;
-  text-align:center;
-}
-
-/* ===============================
-   フィルター
-================================ */
+/* フィルタ */
 .filters{
   display:flex;
   flex-wrap:wrap;
-  gap:10px;
   justify-content:center;
-  margin-bottom:14px;
+  gap:8px;
+  margin-bottom:12px;
 }
-
 .filters label{
   background:var(--panel);
   border:1px solid var(--border);
   padding:6px 10px;
   border-radius:999px;
   cursor:pointer;
-  font-size:13px;
 }
 
-/* ===============================
-   ボタン
-================================ */
-.center{
-  text-align:center;
-  margin-bottom:14px;
-}
-
+/* ボタン */
+.center{text-align:center;margin-bottom:14px}
 button{
   background:linear-gradient(135deg,#38bdf8,#0ea5e9);
   border:none;
-  color:#000;
   padding:16px 36px;
   border-radius:999px;
-  font-weight:bold;
   font-size:20px;
+  font-weight:bold;
   cursor:pointer;
 }
-
-button:hover{
-  filter:brightness(1.05);
-}
-
 .reset-btn{
   background:#475569;
-  color:#e5e7eb;
+  color:#fff;
   font-size:14px;
   padding:10px 20px;
-  margin-left:10px;
+  margin-left:8px;
+}
+.reset-btn.small{
+  padding:6px 14px;
+  font-size:12px;
 }
 
-.reset-btn.small{
-  padding:6px 14
+/* 抽選エリア */
+.drag-area{
+  display:flex;
+  gap:16px;
+  flex-wrap:wrap;
+  margin-bottom:20px;
+}
+.box{
+  flex:1;
+  min-width:260px;
+  background:var(--panel);
+  border:1px solid var(--border);
+  border-radius:14px;
+  padding:12px;
+}
+.box h2{text-align:center;margin:6px 0 10px}
+
+.list{
+  min-height:140px;
+  border:2px dashed var(--border);
+  border-radius:10px;
+  padding:8px;
+  display:grid;
+  grid-template-columns:repeat(auto-fill,120px);
+  gap:6px;
+}
+
+/* カード */
+.card{
+  display:flex;
+  align-items:center;
+  background:#020617;
+  border:1px solid var(--border);
+  border-radius:10px;
+  padding:6px;
+  cursor:grab;
+}
+.card img{
+  width:40px;
+  height:40px;
+  border-radius:8px;
+  margin-right:6px;
+}
+.card span{font-size:12px}
+
+/* 抽選演出 */
+.shuffling{
+  animation:flash .15s linear infinite alternate;
+}
+@keyframes flash{
+  from{opacity:.4}
+  to{opacity:1}
+}
+
+/* 所持キャラ */
+.owned-header{
+  display:flex;
+  align-items:center;
+  justify-content:space-between;
+  margin:16px 0 8px;
+}
+.character-grid{
+  display:grid;
+  grid-template-columns:repeat(auto-fill,80px);
+  gap:12px;
+  justify-content:center;
+  margin-bottom:20px;
+}
+.char{text-align:center;cursor:pointer}
+.char img{
+  width:64px;
+  height:64px;
+  border-radius:12px;
+}
+.char span{
+  display:block;
+  font-size:10px;
+  margin-top:4px;
+}
+.char.off img{
+  filter:grayscale(100%) brightness(50%);
+}
+
+/* 履歴 */
+.history{margin-top:20px}
+.history-grid{
+  display:grid;
+  grid-template-columns:repeat(2,1fr);
+  gap:10px;
+}
+.history-item{
+  background:var(--panel);
+  border:1px solid var(--border);
+  border-radius:10px;
+  padding:6px;
+  cursor:pointer;
+}
+.history-time{
+  font-size:10px;
+  opacity:.7;
+  margin-bottom:4px;
+}
+.history-icons{
+  display:flex;
+  flex-wrap:wrap;
+  gap:4px;
+}
+.history-icons img{
+  width:28px;
+  height:28px;
+  border-radius:6px;
+}
