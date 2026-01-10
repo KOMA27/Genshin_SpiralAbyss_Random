@@ -44,10 +44,10 @@
 
 <script>
 /* =====================
-   状態
+   グローバル状態
 ===================== */
 let characters = [];
-let owned = JSON.parse(localStorage.getItem("owned") || "[]");
+let owned = [];
 let history = JSON.parse(localStorage.getItem("history") || "[]");
 
 let result = [];
@@ -61,9 +61,17 @@ let animating = false;
    初期ロード
 ===================== */
 fetch("./characters.json")
-  .then(res => res.json())
+  .then(r => r.json())
   .then(data => {
     characters = data;
+
+    const savedOwned = JSON.parse(localStorage.getItem("owned"));
+    owned = Array.isArray(savedOwned) && savedOwned.length
+      ? savedOwned
+      : characters.map(c => c.name); // ★ 初期は全ON
+
+    localStorage.setItem("owned", JSON.stringify(owned));
+
     renderOwned();
     renderHistory();
     restoreFromURL();
@@ -76,17 +84,17 @@ const grid = document.getElementById("characterGrid");
 
 function renderOwned(){
   grid.innerHTML = "";
-  characters.forEach(c=>{
+  characters.forEach(c => {
     const div = document.createElement("div");
     div.className = "char" + (owned.includes(c.name) ? "" : " off");
     div.innerHTML = `
       <img src="./icon/${c.name}_s.webp">
       <span>${c.name}</span>
     `;
-    div.onclick = ()=>{
-      owned.includes(c.name)
-        ? owned = owned.filter(n=>n!==c.name)
-        : owned.push(c.name);
+    div.onclick = () => {
+      owned = owned.includes(c.name)
+        ? owned.filter(n => n !== c.name)
+        : [...owned, c.name];
       localStorage.setItem("owned", JSON.stringify(owned));
       renderOwned();
     };
@@ -97,7 +105,7 @@ function renderOwned(){
 /* =====================
    抽選
 ===================== */
-document.getElementById("drawBtn").onclick = async ()=>{
+drawBtn.onclick = async () => {
   if(animating) return;
   if(owned.length < 8){
     alert("所持キャラが8人未満です");
@@ -110,31 +118,46 @@ document.getElementById("drawBtn").onclick = async ()=>{
   result = [];
   teamA = [];
   teamB = [];
+  renderTeams();
 
   const pool = [...owned];
   shuffle(pool);
   const selected = pool.slice(0,8);
 
-  const params = new URLSearchParams();
-  params.set("r", selected.join(","));
-  history.unshift({ time:new Date().toLocaleString(), chars:selected });
+  history.unshift({
+    time: new Date().toLocaleString(),
+    chars: selected
+  });
   history = history.slice(0,10);
   localStorage.setItem("history", JSON.stringify(history));
-  history.replaceState(null,"","?"+params);
+  renderHistory();
 
-  for(const c of selected){
+  history.replaceState(null,"","?r="+encodeURIComponent(selected.join(",")));
+
+  for(const name of selected){
     await sleep(300);
-    result.push(c);
+    result.push(name);
+    autoFill();
+    renderTeams();
   }
 
-  renderHistory();
   animating = false;
   drawBtn.disabled = false;
 };
 
 /* =====================
-   チーム
+   編成
 ===================== */
+function autoFill(){
+  if(teamA.length < 4){
+    const n = result.find(x => !teamA.includes(x) && !teamB.includes(x));
+    if(n) teamA.push(n);
+  } else if(teamB.length < 4){
+    const n = result.find(x => !teamA.includes(x) && !teamB.includes(x));
+    if(n) teamB.push(n);
+  }
+}
+
 function renderTeams(){
   renderTeam("teamA", teamA, lockA);
   renderTeam("teamB", teamB, lockB);
@@ -165,26 +188,8 @@ function renderTeam(id, arr, locked){
       return;
     }
     dst.push(src.splice(idx,1)[0]);
-    autoFill();
     renderTeams();
   };
-}
-
-function autoFill(){
-  if(teamA.length===4){
-    while(teamB.length<4){
-      const n = result.find(x=>!teamA.includes(x)&&!teamB.includes(x));
-      if(!n) break;
-      teamB.push(n);
-    }
-  }
-  if(teamB.length===4){
-    while(teamA.length<4){
-      const n = result.find(x=>!teamA.includes(x)&&!teamB.includes(x));
-      if(!n) break;
-      teamA.push(n);
-    }
-  }
 }
 
 /* =====================
@@ -192,10 +197,13 @@ function autoFill(){
 ===================== */
 document.querySelectorAll(".lock-btn").forEach(btn=>{
   btn.onclick=()=>{
-    btn.dataset.team==="a"
-      ? lockA=!lockA
-      : lockB=!lockB;
-    btn.textContent = btn.textContent==="🔓"?"🔒":"🔓";
+    if(btn.dataset.team==="a"){
+      lockA=!lockA;
+      btn.textContent=lockA?"🔒":"🔓";
+    }else{
+      lockB=!lockB;
+      btn.textContent=lockB?"🔒":"🔓";
+    }
   };
 });
 
@@ -225,28 +233,29 @@ function restoreFromURL(){
   const r = new URLSearchParams(location.search).get("r");
   if(!r) return;
   result = r.split(",");
-  autoFill();
+  teamA = result.slice(0,4);
+  teamB = result.slice(4,8);
   renderTeams();
 }
 
 /* =====================
    リセット
 ===================== */
-resetOwned.onclick=()=>{
-  owned=[];
-  localStorage.removeItem("owned");
+resetOwned.onclick = () => {
+  owned = characters.map(c=>c.name); // ★ 全ONに戻す
+  localStorage.setItem("owned", JSON.stringify(owned));
   renderOwned();
 };
 
-resetTeams.onclick=()=>{
-  teamA=[];
-  teamB=[];
-  result=[];
+resetTeams.onclick = () => {
+  result = [];
+  teamA = [];
+  teamB = [];
   renderTeams();
 };
 
-resetHistory.onclick=()=>{
-  history=[];
+resetHistory.onclick = () => {
+  history = [];
   localStorage.removeItem("history");
   renderHistory();
 };
