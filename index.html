@@ -46,137 +46,155 @@
 <div id="grid" class="character-grid"></div>
 
 <script>
-/* ========= グローバル ========= */
+/* ====== 元素色 ====== */
+const elementColor = {
+  炎:'#ef4444',
+  水:'#3b82f6',
+  雷:'#a855f7',
+  氷:'#22d3ee',
+  風:'#22c55e',
+  岩:'#facc15',
+  草:'#84cc16'
+};
+
+/* ====== グローバル ====== */
 let characters = [];
 let owned = new Set();
 
-/* ========= DOM ========= */
+/* ====== DOM ====== */
 const pool = document.getElementById('pool');
 const teamA = document.getElementById('teamA');
 const teamB = document.getElementById('teamB');
 const grid = document.getElementById('grid');
 
-/* ========= JSON ========= */
+/* ====== JSON ====== */
 fetch('./characters.json')
-  .then(res => {
-    if (!res.ok) throw new Error('characters.json が見つかりません');
-    return res.json();
-  })
+  .then(r => r.json())
   .then(data => {
     characters = data;
     const saved = JSON.parse(localStorage.getItem('owned') || '[]');
     owned = new Set(saved.length ? saved : characters.map(c => c.name));
     renderGrid();
-  })
-  .catch(err => {
-    alert(err.message);
-    console.error(err);
   });
 
 function icon(c){
   return `./icon/${c.name}_s.webp`;
 }
 
-/* ========= キャラ一覧 ========= */
+/* ====== キャラ一覧 ====== */
 function renderGrid(){
-  grid.innerHTML = '';
-  characters.forEach(c => {
-    const d = document.createElement('div');
-    d.className = 'char' + (owned.has(c.name) ? '' : ' off');
-    d.innerHTML = `<img src="${icon(c)}"><span>${c.name}</span>`;
-    d.onclick = () => {
-      owned.has(c.name) ? owned.delete(c.name) : owned.add(c.name);
-      localStorage.setItem('owned', JSON.stringify([...owned]));
+  grid.innerHTML='';
+  characters.forEach(c=>{
+    const d=document.createElement('div');
+    d.className='char'+(owned.has(c.name)?'':' off');
+    d.innerHTML=`<img src="${icon(c)}"><span>${c.name}</span>`;
+    d.onclick=()=>{
+      owned.has(c.name)?owned.delete(c.name):owned.add(c.name);
+      localStorage.setItem('owned',JSON.stringify([...owned]));
       renderGrid();
     };
     grid.appendChild(d);
   });
 }
 
-/* ========= 抽選（1人ずつ確定） ========= */
+/* ====== カード生成 ====== */
+function createCard(c){
+  const d=document.createElement('div');
+  d.className='card';
+  d.style.borderColor = elementColor[c.element] || '#64748b';
+  d.innerHTML=`<img src="${icon(c)}">${c.name}`;
+  d.draggable=true;
+  d.ondragstart=e=>e.dataTransfer.setData('text',d.id);
+  return d;
+}
+
+/* ====== 抽選 ====== */
 document.getElementById('drawBtn').onclick = async () => {
   pool.innerHTML = teamA.innerHTML = teamB.innerHTML = '';
 
-  const r4 = document.getElementById('r4').checked;
-  const r5 = document.getElementById('r5').checked;
-  const els = [...document.querySelectorAll('.el:checked')].map(e => e.value);
+  const r4=document.getElementById('r4').checked;
+  const r5=document.getElementById('r5').checked;
+  const els=[...document.querySelectorAll('.el:checked')].map(e=>e.value);
 
   let base = characters.filter(c =>
     owned.has(c.name) &&
     els.includes(c.element) &&
-    ((c.rarity === 4 && r4) || (c.rarity === 5 && r5))
+    ((c.rarity===4&&r4)||(c.rarity===5&&r5))
   );
 
-  if (base.length < 8) {
+  if(base.length<8){
     alert('抽選対象が8人未満です');
     return;
   }
 
-  for (let slot = 0; slot < 8; slot++) {
+  const result = shuffle(base).slice(0,8);
 
-    // シャッフル演出
-    for (let i = 0; i < 10; i++) {
-      const tmp = shuffle(base)[0];
-      pool.innerHTML = '';
-      pool.querySelectorAll('.card').forEach(c => pool.appendChild(c));
-
-      const d = document.createElement('div');
-      d.className = 'card shuffling';
-      d.innerHTML = `<img src="${icon(tmp)}">${tmp.name}`;
-      pool.appendChild(d);
-
-      await sleep(70);
-    }
-
-    // 確定
-    const picked = shuffle(base)[0];
-    base = base.filter(c => c !== picked);
-
-    pool.appendChild(createCard(picked));
-    await sleep(120);
+  pool.innerHTML='';
+  const slots=[];
+  for(let i=0;i<8;i++){
+    const d=document.createElement('div');
+    d.className='card shuffling';
+    pool.appendChild(d);
+    slots.push(d);
   }
+
+  let shuffleTimer = setInterval(()=>{
+    slots.forEach(s=>{
+      const c = base[Math.floor(Math.random()*base.length)];
+      s.style.borderColor = elementColor[c.element];
+      s.innerHTML=`<img src="${icon(c)}">${c.name}`;
+    });
+  },80);
+
+  for(let i=0;i<8;i++){
+    await sleep(300);
+    slots[i].classList.remove('shuffling');
+    slots[i].style.borderColor = elementColor[result[i].element];
+    slots[i].innerHTML=`<img src="${icon(result[i])}">${result[i].name}`;
+  }
+
+  clearInterval(shuffleTimer);
+
+  slots.forEach(s=>{
+    s.draggable=true;
+    s.ondragstart=e=>e.dataTransfer.setData('text','');
+  });
 };
 
-/* ========= リセット ========= */
-document.getElementById('resetBtn').onclick = () => {
-  owned = new Set(characters.map(c => c.name));
+/* ====== リセット ====== */
+document.getElementById('resetBtn').onclick=()=>{
+  owned=new Set(characters.map(c=>c.name));
   localStorage.removeItem('owned');
-  pool.innerHTML = teamA.innerHTML = teamB.innerHTML = '';
+  pool.innerHTML=teamA.innerHTML=teamB.innerHTML='';
   renderGrid();
 };
 
-/* ========= D&D ========= */
-function createCard(c){
-  const d = document.createElement('div');
-  d.className = 'card';
-  d.draggable = true;
-  d.ondragstart = e => e.dataTransfer.setData('text', c.name);
-  d.innerHTML = `<img src="${icon(c)}">${c.name}`;
-  return d;
-}
-
-document.querySelectorAll('.list').forEach(list => {
-  list.ondragover = e => e.preventDefault();
-  list.ondrop = e => {
+/* ====== D&D ====== */
+document.querySelectorAll('.list').forEach(list=>{
+  list.ondragover=e=>e.preventDefault();
+  list.ondrop=e=>{
     e.preventDefault();
-    const name = e.dataTransfer.getData('text');
-    const card = [...document.querySelectorAll('.card')].find(c => c.textContent === name);
-    if (!card) return;
+    const card=document.querySelector('.card:active');
+    if(!card)return;
 
-    if (list !== pool && list.children.length >= 4) {
+    if(list!==pool && list.children.length>=4){
       alert('4人までです');
       return;
     }
     list.appendChild(card);
 
-    if (teamA.children.length === 4) [...pool.children].forEach(c => teamB.appendChild(c));
-    if (teamB.children.length === 4) [...pool.children].forEach(c => teamA.appendChild(c));
+    if(teamA.children.length===4){
+      [...pool.children].forEach(c=>teamB.appendChild(c));
+    }
+    if(teamB.children.length===4){
+      [...pool.children].forEach(c=>teamA.appendChild(c));
+    }
   };
 });
 
-/* ========= util ========= */
-function shuffle(arr){ return [...arr].sort(()=>Math.random()-0.5); }
-function sleep(ms){ return new Promise(r=>setTimeout(r,ms)); }
+/* ====== util ====== */
+function shuffle(a){return [...a].sort(()=>Math.random()-0.5);}
+function sleep(ms){return new Promise(r=>setTimeout(r,ms));}
 </script>
 
 </body>
