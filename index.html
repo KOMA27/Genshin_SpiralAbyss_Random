@@ -1,231 +1,242 @@
 <!DOCTYPE html>
 <html lang="ja">
 <head>
-<meta charset="UTF-8">
-<title>原神 深境螺旋 抽選ツール</title>
-<link rel="stylesheet" href="style.css">
+  <meta charset="UTF-8" />
+  <title>原神 螺旋ランダム編成</title>
+  <link rel="stylesheet" href="style.css" />
 </head>
 <body>
 
-<h1>深境螺旋 抽選ツール</h1>
+<h1>螺旋12層 ランダム編成</h1>
 
-<div class="filters">
-  <label><input type="checkbox" id="r4" checked>★4</label>
-  <label><input type="checkbox" id="r5" checked>★5</label>
-  <label><input type="checkbox" class="el" value="炎" checked>炎</label>
-  <label><input type="checkbox" class="el" value="水" checked>水</label>
-  <label><input type="checkbox" class="el" value="雷" checked>雷</label>
-  <label><input type="checkbox" class="el" value="氷" checked>氷</label>
-  <label><input type="checkbox" class="el" value="風" checked>風</label>
-  <label><input type="checkbox" class="el" value="岩" checked>岩</label>
-  <label><input type="checkbox" class="el" value="草" checked>草</label>
-</div>
+<!-- 所持キャラ -->
+<section>
+  <h2>所持キャラ</h2>
+  <div id="characterGrid" class="character-grid"></div>
+  <button id="resetOwned" class="sub-btn">所持キャラリセット</button>
+</section>
 
-<div class="center">
-  <button id="drawBtn">8人抽選</button>
-  <button id="resetTeamBtn" class="reset-btn">編成リセット</button>
-</div>
+<!-- 抽選 -->
+<section class="center">
+  <button id="drawBtn">抽選</button>
+</section>
 
-<div class="drag-area">
+<!-- 抽選結果 -->
+<section class="drag-area">
   <div class="box">
-    <h2>抽選結果</h2>
-    <div id="pool" class="list"></div>
-  </div>
-  <div class="box">
-    <h2>前半</h2>
+    <h2>
+      前半
+      <button class="lock-btn" data-side="a">🔓</button>
+    </h2>
     <div id="teamA" class="list"></div>
   </div>
+
   <div class="box">
-    <h2>後半</h2>
+    <h2>
+      後半
+      <button class="lock-btn" data-side="b">🔓</button>
+    </h2>
     <div id="teamB" class="list"></div>
   </div>
-</div>
+</section>
 
-<div class="owned-header">
-  <h2>キャラ所持設定</h2>
-  <button id="resetOwnedBtn" class="reset-btn small">所持リセット</button>
-</div>
-<div id="grid" class="character-grid"></div>
-
-<div class="history">
-  <h2>抽選履歴</h2>
+<!-- 抽選履歴 -->
+<section>
+  <div class="history-header">
+    <h2>抽選履歴（8人）</h2>
+    <button id="resetHistory" class="sub-btn">履歴リセット</button>
+  </div>
   <div id="history" class="history-grid"></div>
-</div>
+</section>
 
 <script>
-/* ========= 状態 ========= */
-let characters=[];
-let owned=new Set();
-let dragCard=null;
-let drawing=false;
+/* =========================
+   キャラデータ（簡易）
+========================= */
+const characters = [
+  "胡桃","夜蘭","鍾離","雷電将軍","ナヒーダ","万葉","フリーナ","アルハイゼン",
+  "甘雨","申鶴","行秋","香菱","ベネット","忍","フィッシュル","スクロース"
+].map(n => ({ name:n }));
 
-/* ========= DOM ========= */
-const pool=document.getElementById('pool');
-const teamA=document.getElementById('teamA');
-const teamB=document.getElementById('teamB');
-const grid=document.getElementById('grid');
-const historyEl=document.getElementById('history');
-const drawBtn=document.getElementById('drawBtn');
+/* =========================
+   状態
+========================= */
+let owned = JSON.parse(localStorage.getItem("owned") || "[]");
+let history = JSON.parse(localStorage.getItem("abyssHistory") || "[]");
 
-/* ========= util ========= */
-const icon=n=>`./icon/${n}_s.webp`;
-const shuffle=a=>[...a].sort(()=>Math.random()-0.5);
-const sleep=ms=>new Promise(r=>setTimeout(r,ms));
+let teamA = [];
+let teamB = [];
 
-/* ========= 初期化 ========= */
-fetch('./characters.json')
-.then(r=>r.json())
-.then(data=>{
-  characters=data;
-  const saved=JSON.parse(localStorage.getItem('owned'));
-  owned=saved?new Set(saved):new Set(characters.map(c=>c.name));
-  renderGrid();
-  renderHistory();
-});
+let lockA = false;
+let lockB = false;
 
-/* ========= 所持 ========= */
-function renderGrid(){
-  grid.innerHTML='';
-  characters.forEach(c=>{
-    const d=document.createElement('div');
-    d.className='char'+(owned.has(c.name)?'':' off');
-    d.innerHTML=`<img src="${icon(c.name)}"><span>${c.name}</span>`;
-    d.onclick=()=>{
-      owned.has(c.name)?owned.delete(c.name):owned.add(c.name);
-      localStorage.setItem('owned',JSON.stringify([...owned]));
-      renderGrid();
+/* =========================
+   初期描画
+========================= */
+const grid = document.getElementById("characterGrid");
+
+function renderOwned() {
+  grid.innerHTML = "";
+  characters.forEach(c => {
+    const div = document.createElement("div");
+    div.className = "char " + (owned.includes(c.name) ? "" : "off");
+    div.innerHTML = `
+      <img src="./icon/${c.name}_s.webp">
+      <span>${c.name}</span>
+    `;
+    div.onclick = () => {
+      owned = owned.includes(c.name)
+        ? owned.filter(n => n !== c.name)
+        : [...owned, c.name];
+      localStorage.setItem("owned", JSON.stringify(owned));
+      renderOwned();
     };
-    grid.appendChild(d);
+    grid.appendChild(div);
   });
 }
+renderOwned();
 
-/* ========= カード ========= */
-function card(name){
-  const d=document.createElement('div');
-  d.className='card';
-  d.draggable=true;
-  d.innerHTML=`<img src="${icon(name)}"><span>${name}</span>`;
-  d.ondragstart=()=>dragCard=d;
-  return d;
-}
-
-/* ========= 抽選アニメ ========= */
-async function animateDraw(result){
-  pool.innerHTML='';
-  teamA.innerHTML='';
-  teamB.innerHTML='';
-
-  drawBtn.disabled=true;
-  drawing=true;
-
-  const slots=[];
-  for(let i=0;i<8;i++){
-    const s=document.createElement('div');
-    s.className='card shuffling';
-    pool.appendChild(s);
-    slots.push(s);
-  }
-
-  const roll=setInterval(()=>{
-    slots.forEach(s=>{
-      const c=characters[Math.floor(Math.random()*characters.length)];
-      s.innerHTML=`<img src="${icon(c.name)}"><span>${c.name}</span>`;
-    });
-  },80);
-
-  for(let i=0;i<8;i++){
-    await sleep(300);
-    slots[i].classList.remove('shuffling');
-    slots[i].replaceWith(card(result[i]));
-  }
-
-  clearInterval(roll);
-  drawing=false;
-  drawBtn.disabled=false;
-}
-
-/* ========= 抽選 ========= */
-drawBtn.onclick=()=>{
-  if(drawing)return;
-
-  const els=[...document.querySelectorAll('.el:checked')].map(e=>e.value);
-  const base=characters.filter(c=>
-    owned.has(c.name)&&
-    els.includes(c.element)&&
-    ((c.rarity===4&&r4.checked)||(c.rarity===5&&r5.checked))
-  );
-
-  if(base.length<8){
-    alert('抽選対象が8人未満です');
+/* =========================
+   抽選
+========================= */
+document.getElementById("drawBtn").onclick = async () => {
+  if (owned.length < 8) {
+    alert("所持キャラが8人未満です");
     return;
   }
 
-  const result=shuffle(base).slice(0,8).map(c=>c.name);
-  animateDraw(result);
-  saveHistory(result);
+  teamA = lockA ? teamA : [];
+  teamB = lockB ? teamB : [];
+
+  const pool = owned.filter(n =>
+    !teamA.includes(n) && !teamB.includes(n)
+  );
+
+  shuffle(pool);
+
+  const result = pool.slice(0, 8 - teamA.length - teamB.length);
+
+  const all = [...teamA, ...teamB, ...result];
+
+  history.unshift({
+    time: new Date().toLocaleString(),
+    chars: all
+  });
+  history = history.slice(0, 10);
+  localStorage.setItem("abyssHistory", JSON.stringify(history));
+  renderHistory();
+
+  let idx = 0;
+  for (const name of result) {
+    await sleep(300);
+    if (!lockA && teamA.length < 4) {
+      teamA.push(name);
+    } else if (!lockB && teamB.length < 4) {
+      teamB.push(name);
+    }
+    renderTeams();
+  }
 };
 
-/* ========= D&D ========= */
-[pool,teamA,teamB].forEach(list=>{
-  list.ondragover=e=>e.preventDefault();
-  list.ondrop=e=>{
-    e.preventDefault();
-    if(!dragCard)return;
-    if(list!==pool&&list.children.length>=4){
-      alert('4人までです');
-      return;
-    }
-    list.appendChild(dragCard);
-    autoFill();
-  };
-});
-
-function autoFill(){
-  if(teamA.children.length===4) fill(teamB);
-  if(teamB.children.length===4) fill(teamA);
-}
-function fill(t){
-  while(t.children.length<4&&pool.children.length>0){
-    t.appendChild(pool.children[0]);
+function shuffle(a){
+  for(let i=a.length-1;i>0;i--){
+    const j=Math.floor(Math.random()*(i+1));
+    [a[i],a[j]]=[a[j],a[i]];
   }
 }
 
-/* ========= 履歴 ========= */
-function saveHistory(arr){
-  let h=JSON.parse(localStorage.getItem('history')||'[]');
-  h.unshift({arr,time:Date.now()});
-  h=h.slice(0,10);
-  localStorage.setItem('history',JSON.stringify(h));
-  renderHistory();
+/* =========================
+   チーム描画 + DnD
+========================= */
+function renderTeams(){
+  renderList("teamA", teamA, lockA);
+  renderList("teamB", teamB, lockB);
+
+  // 自動振り分け
+  if (teamA.length === 4 && teamB.length < 4 && !lockB) {
+    const rest = teamA.length + teamB.length;
+    if (rest === 8) return;
+  }
 }
+
+function renderList(id, arr, locked){
+  const el = document.getElementById(id);
+  el.innerHTML = "";
+  arr.forEach((n,i)=>{
+    const d=document.createElement("div");
+    d.className="card";
+    d.draggable=!locked;
+    d.innerHTML=`<img src="./icon/${n}_s.webp"><span>${n}</span>`;
+    d.ondragstart=e=>{
+      e.dataTransfer.setData("text",`${id},${i}`);
+    };
+    el.appendChild(d);
+  });
+
+  el.ondragover=e=>e.preventDefault();
+  el.ondrop=e=>{
+    if(locked) return;
+    const [from,idx]=e.dataTransfer.getData("text").split(",");
+    const src = from==="teamA"?teamA:teamB;
+    const dst = id==="teamA"?teamA:teamB;
+    if(dst.length>=4) return alert("4人までです");
+    dst.push(src.splice(idx,1)[0]);
+    renderTeams();
+  };
+}
+
+/* =========================
+   ロック
+========================= */
+document.querySelectorAll(".lock-btn").forEach(btn=>{
+  btn.onclick=()=>{
+    if(btn.dataset.side==="a"){
+      lockA=!lockA;
+      btn.textContent=lockA?"🔒":"🔓";
+    }else{
+      lockB=!lockB;
+      btn.textContent=lockB?"🔒":"🔓";
+    }
+    renderTeams();
+  };
+});
+
+/* =========================
+   履歴
+========================= */
 function renderHistory(){
-  historyEl.innerHTML='';
-  const h=JSON.parse(localStorage.getItem('history')||'[]');
-  h.forEach(x=>{
-    const d=document.createElement('div');
-    d.className='history-item';
-    d.onclick=()=>animateDraw(x.arr);
+  const h=document.getElementById("history");
+  h.innerHTML="";
+  history.forEach(e=>{
+    const d=document.createElement("div");
+    d.className="history-item";
     d.innerHTML=`
-      <div class="history-time">${new Date(x.time).toLocaleString()}</div>
-      <div class="history-icons">
-        ${x.arr.map(n=>`<img src="${icon(n)}">`).join('')}
-      </div>`;
-    historyEl.appendChild(d);
+      <div class="time">${e.time}</div>
+      <div class="icons">
+        ${e.chars.map(n=>`<img src="./icon/${n}_s.webp">`).join("")}
+      </div>
+    `;
+    h.appendChild(d);
   });
 }
+renderHistory();
 
-/* ========= リセット ========= */
-resetTeamBtn.onclick=()=>{
-  pool.innerHTML='';
-  teamA.innerHTML='';
-  teamB.innerHTML='';
+/* =========================
+   リセット
+========================= */
+document.getElementById("resetOwned").onclick=()=>{
+  owned=[];
+  localStorage.removeItem("owned");
+  renderOwned();
 };
-resetOwnedBtn.onclick=()=>{
-  owned=new Set(characters.map(c=>c.name));
-  localStorage.removeItem('owned');
-  renderGrid();
+
+document.getElementById("resetHistory").onclick=()=>{
+  history=[];
+  localStorage.removeItem("abyssHistory");
+  renderHistory();
 };
+
+const sleep = ms => new Promise(r=>setTimeout(r,ms));
 </script>
-
 </body>
 </html>
