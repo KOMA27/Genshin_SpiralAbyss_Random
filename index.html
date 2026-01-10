@@ -24,7 +24,11 @@
 
 <div class="center">
   <button id="drawBtn">8人抽選</button>
-  <button class="reset-btn" id="resetBtn">リセット</button>
+  <button class="reset-btn" id="resetResultBtn">抽選結果リセット</button>
+
+  <label class="se-toggle">
+    <input type="checkbox" id="seToggle"> 効果音
+  </label>
 </div>
 
 <div class="drag-area">
@@ -42,57 +46,93 @@
   </div>
 </div>
 
-<h2 class="sub">キャラ所持設定</h2>
+<div class="owned-header">
+  <h2 class="sub">キャラ所持設定</h2>
+  <button class="reset-btn small" id="resetOwnedBtn">所持設定リセット</button>
+</div>
 <div id="grid" class="character-grid"></div>
 
 <script>
-/* ========= SE (Web Audio API) ========= */
+/* =======================
+   効果音
+======================= */
 let audioCtx;
+let seEnabled = JSON.parse(localStorage.getItem('seEnabled') ?? 'true');
+const seToggle = document.getElementById('seToggle');
+seToggle.checked = seEnabled;
+
+seToggle.onchange = () => {
+  seEnabled = seToggle.checked;
+  localStorage.setItem('seEnabled', JSON.stringify(seEnabled));
+};
+
 function playSE(){
+  if(!seEnabled) return;
+
   if(!audioCtx){
     audioCtx = new (window.AudioContext || window.webkitAudioContext)();
   }
-  const o = audioCtx.createOscillator();
-  const g = audioCtx.createGain();
 
-  o.type = 'triangle';
-  o.frequency.setValueAtTime(1800, audioCtx.currentTime);
-  o.frequency.exponentialRampToValueAtTime(900, audioCtx.currentTime + 0.08);
+  const now = audioCtx.currentTime;
 
-  g.gain.setValueAtTime(0.25, audioCtx.currentTime);
-  g.gain.exponentialRampToValueAtTime(0.001, audioCtx.currentTime + 0.08);
+  const osc1 = audioCtx.createOscillator();
+  const osc2 = audioCtx.createOscillator();
+  const gain = audioCtx.createGain();
 
-  o.connect(g).connect(audioCtx.destination);
-  o.start();
-  o.stop(audioCtx.currentTime + 0.08);
+  osc1.type = 'sawtooth';
+  osc2.type = 'triangle';
+
+  osc1.frequency.setValueAtTime(2400, now);
+  osc1.frequency.exponentialRampToValueAtTime(600, now + 0.18);
+
+  osc2.frequency.setValueAtTime(1200, now);
+  osc2.frequency.exponentialRampToValueAtTime(300, now + 0.18);
+
+  gain.gain.setValueAtTime(0.0001, now);
+  gain.gain.exponentialRampToValueAtTime(0.3, now + 0.03);
+  gain.gain.exponentialRampToValueAtTime(0.0001, now + 0.2);
+
+  osc1.connect(gain);
+  osc2.connect(gain);
+  gain.connect(audioCtx.destination);
+
+  osc1.start(now);
+  osc2.start(now);
+  osc1.stop(now + 0.22);
+  osc2.stop(now + 0.22);
 }
 
-/* ========= グローバル ========= */
-let characters = [];
-let owned = new Set();
-let dragCard = null;
+/* =======================
+   グローバル
+======================= */
+let characters=[];
+let owned=new Set();
+let dragCard=null;
 
-/* ========= DOM ========= */
-const pool = document.getElementById('pool');
-const teamA = document.getElementById('teamA');
-const teamB = document.getElementById('teamB');
-const grid = document.getElementById('grid');
+const pool=document.getElementById('pool');
+const teamA=document.getElementById('teamA');
+const teamB=document.getElementById('teamB');
+const grid=document.getElementById('grid');
 
-/* ========= JSON ========= */
+/* =======================
+   JSON 読み込み
+======================= */
 fetch('./characters.json')
-  .then(r => r.json())
-  .then(data => {
-    characters = data;
-    const saved = JSON.parse(localStorage.getItem('owned') || '[]');
-    owned = new Set(saved.length ? saved : characters.map(c => c.name));
-    renderGrid();
-  });
+.then(r=>r.json())
+.then(data=>{
+  characters=data;
+  const saved=JSON.parse(localStorage.getItem('owned')||'[]');
+  owned=new Set(saved.length?saved:characters.map(c=>c.name));
+  renderGrid();
+});
 
 function icon(c){
   return `./icon/${c.name}_s.webp`;
 }
 
-/* ========= 所持設定 ========= */
+/* =======================
+   所持設定
+======================= */
 function renderGrid(){
   grid.innerHTML='';
   characters.forEach(c=>{
@@ -108,48 +148,41 @@ function renderGrid(){
   });
 }
 
-/* ========= カード ========= */
+/* =======================
+   カード
+======================= */
 function createCard(c){
   const d=document.createElement('div');
   d.className='card';
   d.innerHTML=`<img src="${icon(c)}">${c.name}`;
   d.draggable=true;
-
-  d.ondragstart=()=>{
-    dragCard=d;
-    setTimeout(()=>d.classList.add('dragging'),0);
-  };
-  d.ondragend=()=>{
-    dragCard=null;
-    d.classList.remove('dragging');
-  };
+  d.ondragstart=()=>dragCard=d;
+  d.ondragend=()=>dragCard=null;
   return d;
 }
 
-/* ========= 抽選 ========= */
-document.getElementById('drawBtn').onclick = async ()=>{
-  pool.innerHTML = teamA.innerHTML = teamB.innerHTML = '';
+/* =======================
+   抽選
+======================= */
+document.getElementById('drawBtn').onclick=async()=>{
+  pool.innerHTML=teamA.innerHTML=teamB.innerHTML='';
 
   const r4=document.getElementById('r4').checked;
   const r5=document.getElementById('r5').checked;
   const els=[...document.querySelectorAll('.el:checked')].map(e=>e.value);
 
-  let base = characters.filter(c =>
-    owned.has(c.name) &&
-    els.includes(c.element) &&
-    ((c.rarity===4 && r4) || (c.rarity===5 && r5))
+  let base=characters.filter(c=>
+    owned.has(c.name)&&
+    els.includes(c.element)&&
+    ((c.rarity===4&&r4)||(c.rarity===5&&r5))
   );
 
-  if(base.length < 8){
-    alert('抽選対象が8人未満です');
-    return;
-  }
+  if(base.length<8){alert('抽選対象が8人未満です');return;}
 
-  const result = shuffle(base).slice(0,8);
+  const result=shuffle(base).slice(0,8);
   const slots=[];
-  const active = Array(8).fill(true);
+  const active=Array(8).fill(true);
 
-  pool.innerHTML='';
   for(let i=0;i<8;i++){
     const d=document.createElement('div');
     d.className='card shuffling';
@@ -159,56 +192,59 @@ document.getElementById('drawBtn').onclick = async ()=>{
 
   const timer=setInterval(()=>{
     slots.forEach((s,i)=>{
-      if(!active[i]) return;
+      if(!active[i])return;
       const c=base[Math.floor(Math.random()*base.length)];
       s.innerHTML=`<img src="${icon(c)}">${c.name}`;
     });
-  },80);
+  },70);
 
   for(let i=0;i<8;i++){
     await sleep(300);
     active[i]=false;
-    playSE();               // ← ★ここでSE
+    playSE();
     slots[i].classList.remove('shuffling');
     slots[i].replaceWith(createCard(result[i]));
     slots[i]=pool.children[i];
   }
-
   clearInterval(timer);
 };
 
-/* ========= D&D ========= */
-[pool, teamA, teamB].forEach(list=>{
+/* =======================
+   D&D
+======================= */
+[pool,teamA,teamB].forEach(list=>{
   list.ondragover=e=>e.preventDefault();
   list.ondrop=e=>{
     e.preventDefault();
-    if(!dragCard) return;
-
+    if(!dragCard)return;
     if(list!==pool && list.children.length>=4){
-      alert('4人までです');
-      return;
+      alert('4人までです');return;
     }
-
     list.appendChild(dragCard);
 
-    if(teamA.children.length===4){
+    if(teamA.children.length===4)
       [...pool.children].forEach(c=>teamB.appendChild(c));
-    }
-    if(teamB.children.length===4){
+    if(teamB.children.length===4)
       [...pool.children].forEach(c=>teamA.appendChild(c));
-    }
   };
 });
 
-/* ========= リセット ========= */
-document.getElementById('resetBtn').onclick=()=>{
+/* =======================
+   リセット
+======================= */
+document.getElementById('resetResultBtn').onclick=()=>{
+  pool.innerHTML=teamA.innerHTML=teamB.innerHTML='';
+};
+
+document.getElementById('resetOwnedBtn').onclick=()=>{
   owned=new Set(characters.map(c=>c.name));
   localStorage.removeItem('owned');
-  pool.innerHTML=teamA.innerHTML=teamB.innerHTML='';
   renderGrid();
 };
 
-/* ========= util ========= */
+/* =======================
+   util
+======================= */
 function shuffle(a){return [...a].sort(()=>Math.random()-0.5);}
 function sleep(ms){return new Promise(r=>setTimeout(r,ms));}
 </script>
