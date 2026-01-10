@@ -1,3 +1,99 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+<meta charset="UTF-8">
+<title>原神 深境螺旋 抽選ツール</title>
+<link rel="stylesheet" href="style.css">
+</head>
+<body>
+
+<h1>深境螺旋 抽選ツール</h1>
+
+<div class="filters">
+  <label><input type="checkbox" id="r4" checked>★4</label>
+  <label><input type="checkbox" id="r5" checked>★5</label>
+
+  <label><input type="checkbox" class="el" value="炎" checked>炎</label>
+  <label><input type="checkbox" class="el" value="水" checked>水</label>
+  <label><input type="checkbox" class="el" value="雷" checked>雷</label>
+  <label><input type="checkbox" class="el" value="氷" checked>氷</label>
+  <label><input type="checkbox" class="el" value="風" checked>風</label>
+  <label><input type="checkbox" class="el" value="岩" checked>岩</label>
+  <label><input type="checkbox" class="el" value="草" checked>草</label>
+</div>
+
+<div class="center">
+  <button id="drawBtn">8人抽選</button>
+  <button class="reset-btn" id="resetBtn">リセット</button>
+</div>
+
+<div class="drag-area">
+  <div class="box">
+    <h2>抽選結果</h2>
+    <div id="pool" class="list"></div>
+  </div>
+  <div class="box">
+    <h2>前半</h2>
+    <div id="teamA" class="list"></div>
+  </div>
+  <div class="box">
+    <h2>後半</h2>
+    <div id="teamB" class="list"></div>
+  </div>
+</div>
+
+<h2 class="sub">キャラ所持設定</h2>
+<div id="grid" class="character-grid"></div>
+
+<script>
+/* ========= グローバル ========= */
+let characters = [];
+let owned = new Set();
+
+/* ========= DOM ========= */
+const pool = document.getElementById('pool');
+const teamA = document.getElementById('teamA');
+const teamB = document.getElementById('teamB');
+const grid = document.getElementById('grid');
+
+/* ========= JSON ========= */
+fetch('./characters.json')
+  .then(res => {
+    if (!res.ok) throw new Error('characters.json が見つかりません');
+    return res.json();
+  })
+  .then(data => {
+    characters = data;
+    const saved = JSON.parse(localStorage.getItem('owned') || '[]');
+    owned = new Set(saved.length ? saved : characters.map(c => c.name));
+    renderGrid();
+  })
+  .catch(err => {
+    alert(err.message);
+    console.error(err);
+  });
+
+function icon(c){
+  return `./icon/${c.name}_s.webp`;
+}
+
+/* ========= キャラ一覧 ========= */
+function renderGrid(){
+  grid.innerHTML = '';
+  characters.forEach(c => {
+    const d = document.createElement('div');
+    d.className = 'char' + (owned.has(c.name) ? '' : ' off');
+    d.innerHTML = `<img src="${icon(c)}"><span>${c.name}</span>`;
+    d.onclick = () => {
+      owned.has(c.name) ? owned.delete(c.name) : owned.add(c.name);
+      localStorage.setItem('owned', JSON.stringify([...owned]));
+      renderGrid();
+    };
+    grid.appendChild(d);
+  });
+}
+
+/* ========= 抽選（1人ずつ確定） ========= */
 document.getElementById('drawBtn').onclick = async () => {
   pool.innerHTML = teamA.innerHTML = teamB.innerHTML = '';
 
@@ -16,14 +112,14 @@ document.getElementById('drawBtn').onclick = async () => {
     return;
   }
 
-  // 8枠を1つずつ決定
   for (let slot = 0; slot < 8; slot++) {
+
     // シャッフル演出
     for (let i = 0; i < 10; i++) {
-      pool.innerHTML = '';
-      [...pool.children].forEach(c => pool.appendChild(c));
-
       const tmp = shuffle(base)[0];
+      pool.innerHTML = '';
+      pool.querySelectorAll('.card').forEach(c => pool.appendChild(c));
+
       const d = document.createElement('div');
       d.className = 'card shuffling';
       d.innerHTML = `<img src="${icon(tmp)}">${tmp.name}`;
@@ -36,9 +132,52 @@ document.getElementById('drawBtn').onclick = async () => {
     const picked = shuffle(base)[0];
     base = base.filter(c => c !== picked);
 
-    const card = createCard(picked);
-    pool.appendChild(card);
-
-    await sleep(150);
+    pool.appendChild(createCard(picked));
+    await sleep(120);
   }
 };
+
+/* ========= リセット ========= */
+document.getElementById('resetBtn').onclick = () => {
+  owned = new Set(characters.map(c => c.name));
+  localStorage.removeItem('owned');
+  pool.innerHTML = teamA.innerHTML = teamB.innerHTML = '';
+  renderGrid();
+};
+
+/* ========= D&D ========= */
+function createCard(c){
+  const d = document.createElement('div');
+  d.className = 'card';
+  d.draggable = true;
+  d.ondragstart = e => e.dataTransfer.setData('text', c.name);
+  d.innerHTML = `<img src="${icon(c)}">${c.name}`;
+  return d;
+}
+
+document.querySelectorAll('.list').forEach(list => {
+  list.ondragover = e => e.preventDefault();
+  list.ondrop = e => {
+    e.preventDefault();
+    const name = e.dataTransfer.getData('text');
+    const card = [...document.querySelectorAll('.card')].find(c => c.textContent === name);
+    if (!card) return;
+
+    if (list !== pool && list.children.length >= 4) {
+      alert('4人までです');
+      return;
+    }
+    list.appendChild(card);
+
+    if (teamA.children.length === 4) [...pool.children].forEach(c => teamB.appendChild(c));
+    if (teamB.children.length === 4) [...pool.children].forEach(c => teamA.appendChild(c));
+  };
+});
+
+/* ========= util ========= */
+function shuffle(arr){ return [...arr].sort(()=>Math.random()-0.5); }
+function sleep(ms){ return new Promise(r=>setTimeout(r,ms)); }
+</script>
+
+</body>
+</html>
