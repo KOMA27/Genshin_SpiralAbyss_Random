@@ -9,6 +9,7 @@
 
 <h1>深境螺旋 抽選ツール</h1>
 
+<!-- フィルタ -->
 <div class="filters">
   <label><input type="checkbox" id="r4" checked>★4</label>
   <label><input type="checkbox" id="r5" checked>★5</label>
@@ -22,11 +23,13 @@
   <label><input type="checkbox" class="el" value="草" checked>草</label>
 </div>
 
+<!-- ボタン -->
 <div class="center">
   <button id="drawBtn">8人抽選</button>
-  <button class="reset-btn" id="resetTeamBtn">編成リセット</button>
+  <button id="resetTeamBtn" class="reset-btn">編成リセット</button>
 </div>
 
+<!-- 抽選・編成 -->
 <div class="drag-area">
   <div class="box">
     <h2>抽選結果</h2>
@@ -42,18 +45,21 @@
   </div>
 </div>
 
+<!-- 所持キャラ -->
 <div class="owned-header">
-  <h2 class="sub">キャラ所持設定</h2>
-  <button class="reset-btn small" id="resetOwnedBtn">所持設定リセット</button>
+  <h2>キャラ所持設定</h2>
+  <button id="resetOwnedBtn" class="reset-btn small">所持設定リセット</button>
 </div>
 <div id="grid" class="character-grid"></div>
 
+<!-- 履歴 -->
 <div class="history">
   <h2>抽選履歴</h2>
-  <div id="history"></div>
+  <div id="history" class="history-grid"></div>
 </div>
 
 <script>
+/* ===== データ ===== */
 let characters=[];
 let owned=new Set();
 let dragCard=null;
@@ -78,13 +84,16 @@ fetch('./characters.json')
   renderHistory();
 });
 
-/* ===== 所持設定 ===== */
+/* ===== 所持キャラ ===== */
 function renderGrid(){
   grid.innerHTML='';
   characters.forEach(c=>{
     const d=document.createElement('div');
     d.className='char'+(owned.has(c.name)?'':' off');
-    d.innerHTML=`<img src="${icon(c.name)}"><span>${c.name}</span>`;
+    d.innerHTML=`
+      <img src="${icon(c.name)}">
+      <span>${c.name}</span>
+    `;
     d.onclick=()=>{
       owned.has(c.name)?owned.delete(c.name):owned.add(c.name);
       localStorage.setItem('owned',JSON.stringify([...owned]));
@@ -98,8 +107,11 @@ function renderGrid(){
 function createCard(name){
   const d=document.createElement('div');
   d.className='card';
-  d.innerHTML=`<img src="${icon(name)}"><span>${name}</span>`;
   d.draggable=true;
+  d.innerHTML=`
+    <img src="${icon(name)}">
+    <span>${name}</span>
+  `;
   d.ondragstart=()=>dragCard=d;
   d.ondragend=()=>dragCard=null;
   return d;
@@ -107,7 +119,9 @@ function createCard(name){
 
 /* ===== 抽選 ===== */
 drawBtn.onclick=async()=>{
-  pool.innerHTML=teamA.innerHTML=teamB.innerHTML='';
+  pool.innerHTML='';
+  teamA.innerHTML='';
+  teamB.innerHTML='';
 
   const els=[...document.querySelectorAll('.el:checked')].map(e=>e.value);
   const base=characters.filter(c=>
@@ -123,17 +137,16 @@ drawBtn.onclick=async()=>{
 
   const result=shuffle(base).slice(0,8).map(c=>c.name);
 
-  const slots=[],active=Array(8).fill(true);
+  const slots=[];
   for(let i=0;i<8;i++){
-    const d=document.createElement('div');
-    d.className='card shuffling';
-    pool.appendChild(d);
-    slots.push(d);
+    const s=document.createElement('div');
+    s.className='card shuffling';
+    pool.appendChild(s);
+    slots.push(s);
   }
 
   const timer=setInterval(()=>{
-    slots.forEach((s,i)=>{
-      if(!active[i])return;
+    slots.forEach(s=>{
       const c=base[Math.floor(Math.random()*base.length)];
       s.innerHTML=`<img src="${icon(c.name)}"><span>${c.name}</span>`;
     });
@@ -141,7 +154,6 @@ drawBtn.onclick=async()=>{
 
   for(let i=0;i<8;i++){
     await sleep(300);
-    active[i]=false;
     slots[i].classList.remove('shuffling');
     slots[i].replaceWith(createCard(result[i]));
   }
@@ -165,11 +177,9 @@ drawBtn.onclick=async()=>{
   };
 });
 
-/* ===== 履歴（安全化） ===== */
+/* ===== 履歴 ===== */
 function saveHistory(arr){
-  if(!Array.isArray(arr)) return;
-  let h=JSON.parse(localStorage.getItem('history')||'[]')
-    .filter(x=>Array.isArray(x.arr));
+  let h=JSON.parse(localStorage.getItem('history')||'[]');
   h.unshift({arr,time:Date.now()});
   h=h.slice(0,10);
   localStorage.setItem('history',JSON.stringify(h));
@@ -178,8 +188,7 @@ function saveHistory(arr){
 
 function renderHistory(){
   historyEl.innerHTML='';
-  const h=JSON.parse(localStorage.getItem('history')||'[]')
-    .filter(x=>Array.isArray(x.arr));
+  const h=JSON.parse(localStorage.getItem('history')||'[]');
   h.forEach(x=>{
     const d=document.createElement('div');
     d.className='history-item';
@@ -188,25 +197,28 @@ function renderHistory(){
       <div class="history-time">${new Date(x.time).toLocaleString()}</div>
       <div class="history-icons">
         ${x.arr.map(n=>`<img src="${icon(n)}">`).join('')}
-      </div>`;
+      </div>
+    `;
     historyEl.appendChild(d);
   });
 }
 
 function restore(arr){
-  pool.innerHTML=teamA.innerHTML=teamB.innerHTML='';
+  pool.innerHTML='';
+  teamA.innerHTML='';
+  teamB.innerHTML='';
   arr.forEach(n=>pool.appendChild(createCard(n)));
   updateURL(arr);
 }
 
-/* ===== URL（p のみ） ===== */
+/* ===== URL ===== */
 function updateURL(arr){
   history.replaceState(null,'','?p='+arr.join(','));
 }
 
 function restoreFromURL(){
   const q=new URLSearchParams(location.search);
-  if(!q.has('p')) return;
+  if(!q.has('p'))return;
   const arr=q.get('p').split(',');
   pool.innerHTML='';
   arr.forEach(n=>pool.appendChild(createCard(n)));
@@ -214,7 +226,9 @@ function restoreFromURL(){
 
 /* ===== リセット ===== */
 resetTeamBtn.onclick=()=>{
-  pool.innerHTML=teamA.innerHTML=teamB.innerHTML='';
+  pool.innerHTML='';
+  teamA.innerHTML='';
+  teamB.innerHTML='';
   history.replaceState(null,'',location.pathname);
 };
 
