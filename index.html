@@ -48,7 +48,7 @@
 </div>
 <div id="grid" class="character-grid"></div>
 
-<div class="history box">
+<div class="history">
   <h2>抽選履歴</h2>
   <div id="history"></div>
 </div>
@@ -64,6 +64,9 @@ const teamB=document.getElementById('teamB');
 const grid=document.getElementById('grid');
 const historyEl=document.getElementById('history');
 
+const icon=n=>`./icon/${n}_s.webp`;
+
+/* ===== 初期化 ===== */
 fetch('./characters.json')
 .then(r=>r.json())
 .then(data=>{
@@ -71,11 +74,9 @@ fetch('./characters.json')
   const saved=JSON.parse(localStorage.getItem('owned')||'[]');
   owned=new Set(saved.length?saved:characters.map(c=>c.name));
   renderGrid();
-  loadFromURL();
+  restoreFromURL();   // ★URL復元はここ
   renderHistory();
 });
-
-const icon=n=>`./icon/${n}_s.webp`;
 
 /* ===== 所持設定 ===== */
 function renderGrid(){
@@ -108,14 +109,11 @@ function createCard(name){
 drawBtn.onclick=async()=>{
   pool.innerHTML=teamA.innerHTML=teamB.innerHTML='';
 
-  const r4=r4El.checked;
-  const r5=r5El.checked;
   const els=[...document.querySelectorAll('.el:checked')].map(e=>e.value);
-
-  let base=characters.filter(c=>
+  const base=characters.filter(c=>
     owned.has(c.name)&&
     els.includes(c.element)&&
-    ((c.rarity===4&&r4)||(c.rarity===5&&r5))
+    ((c.rarity===4&&r4.checked)||(c.rarity===5&&r5.checked))
   );
 
   if(base.length<8){
@@ -184,16 +182,11 @@ function renderHistory(){
     d.className='history-item';
     d.onclick=()=>restore(x.arr);
 
-    const time=document.createElement('div');
-    time.className='history-time';
-    time.textContent=new Date(x.time).toLocaleString();
-
-    const icons=document.createElement('div');
-    icons.className='history-icons';
-    icons.innerHTML=x.arr.map(n=>`<img src="${icon(n)}">`).join('');
-
-    d.appendChild(time);
-    d.appendChild(icons);
+    d.innerHTML=`
+      <div class="history-time">${new Date(x.time).toLocaleString()}</div>
+      <div class="history-icons">
+        ${x.arr.map(n=>`<img src="${icon(n)}">`).join('')}
+      </div>`;
     historyEl.appendChild(d);
   });
 }
@@ -204,16 +197,17 @@ function restore(arr){
   updateURL(arr);
 }
 
-/* ===== URL ===== */
+/* ===== URL（8人のみ） ===== */
 function updateURL(arr){
-  const q=new URLSearchParams();
-  q.set('p',arr.join(','));
-  history.replaceState(null,'','?'+q.toString());
+  history.replaceState(null,'','?p='+arr.join(','));
 }
-function loadFromURL(){
+
+function restoreFromURL(){
   const q=new URLSearchParams(location.search);
   if(!q.has('p'))return;
-  q.get('p').split(',').forEach(n=>pool.appendChild(createCard(n)));
+  const arr=q.get('p').split(',');
+  pool.innerHTML='';
+  arr.forEach(n=>pool.appendChild(createCard(n)));
 }
 
 /* ===== リセット ===== */
@@ -221,14 +215,14 @@ resetTeamBtn.onclick=()=>{
   pool.innerHTML=teamA.innerHTML=teamB.innerHTML='';
   history.replaceState(null,'',location.pathname);
 };
+
 resetOwnedBtn.onclick=()=>{
   owned=new Set(characters.map(c=>c.name));
   localStorage.removeItem('owned');
   renderGrid();
 };
 
-const r4El=document.getElementById('r4');
-const r5El=document.getElementById('r5');
+/* ===== util ===== */
 const shuffle=a=>[...a].sort(()=>Math.random()-0.5);
 const sleep=ms=>new Promise(r=>setTimeout(r,ms));
 </script>
