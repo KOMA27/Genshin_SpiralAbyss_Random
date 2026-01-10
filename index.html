@@ -46,30 +46,32 @@
 <div id="grid" class="character-grid"></div>
 
 <script>
-let characters=[];
-let owned=new Set();
+window.characters = [];
+window.owned = new Set();
 
 const pool=document.getElementById('pool');
 const teamA=document.getElementById('teamA');
 const teamB=document.getElementById('teamB');
 const grid=document.getElementById('grid');
 
-/* ---------- 初期ロード ---------- */
 fetch('./characters.json')
-  .then(r=>r.json())
+  .then(r=>{
+    if(!r.ok) throw new Error('characters.json 読み込み失敗');
+    return r.json();
+  })
   .then(data=>{
-    characters=data;
+    // 配列 / オブジェクト両対応
+    window.characters = Array.isArray(data) ? data : data.characters;
 
-    owned=new Set(JSON.parse(localStorage.getItem('owned')||'[]'));
+    window.owned = new Set(JSON.parse(localStorage.getItem('owned')||'[]'));
     if(owned.size===0){
       characters.forEach(c=>owned.add(c.name));
     }
     renderGrid();
+  })
+  .catch(err=>{
+    alert(err.message);
   });
-
-function img(c){
-  return `./icon/${c.name}_s.webp`;
-}
 
 /* ---------- UI ---------- */
 function renderGrid(){
