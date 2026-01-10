@@ -7,23 +7,24 @@
 </head>
 <body>
 
-<h1>深境螺旋 チーム抽選</h1>
+<h1>深境螺旋 抽選ツール</h1>
 
 <div class="filters">
   <label><input type="checkbox" id="r4" checked>★4</label>
   <label><input type="checkbox" id="r5" checked>★5</label>
+
   <label><input type="checkbox" class="el" value="炎" checked>炎</label>
   <label><input type="checkbox" class="el" value="水" checked>水</label>
-  <label><input type="checkbox" class="el" value="風" checked>風</label>
   <label><input type="checkbox" class="el" value="雷" checked>雷</label>
   <label><input type="checkbox" class="el" value="氷" checked>氷</label>
-  <label><input type="checkbox" class="el" value="草" checked>草</label>
+  <label><input type="checkbox" class="el" value="風" checked>風</label>
   <label><input type="checkbox" class="el" value="岩" checked>岩</label>
+  <label><input type="checkbox" class="el" value="草" checked>草</label>
 </div>
 
 <div class="center">
-  <button class="draw-btn" onclick="draw()">8人抽選</button>
-  <button class="reset-btn" onclick="resetTeams()">リセット</button>
+  <button onclick="draw()">8人抽選</button>
+  <button class="reset-btn" onclick="resetAll()">リセット</button>
 </div>
 
 <div class="drag-area">
@@ -41,39 +42,24 @@
   </div>
 </div>
 
+<h2 style="text-align:center;margin-top:30px">キャラ所持設定</h2>
 <div id="grid" class="character-grid"></div>
 
+<script src="characters.json"></script>
 <script>
-const ICON='./icon/';
-let characters=[], owned=new Set(), dragId=null;
+const pool=document.getElementById('pool');
+const teamA=document.getElementById('teamA');
+const teamB=document.getElementById('teamB');
+const grid=document.getElementById('grid');
 
-fetch('characters.json').then(r=>r.json()).then(data=>{
-  characters=data;
-  owned=new Set(JSON.parse(localStorage.getItem('owned'))||characters.map(c=>c.name));
-  renderGrid();
-});
+let owned=new Set(JSON.parse(localStorage.getItem('owned')||'[]'));
 
-function img(c){return ICON+c.name+'_s.webp';}
-function save(){localStorage.setItem('owned',JSON.stringify([...owned]));}
-function allowDrop(e){e.preventDefault();}
-function drag(e){dragId=e.currentTarget.id;}
-
-function drop(e,target){
-  e.preventDefault();
-  const box=document.getElementById(target);
-  const card=document.getElementById(dragId);
-  if((target==='teamA'||target==='teamB') && box.children.length>=4) return;
-  box.appendChild(card);
-  autoFill();
+if(owned.size===0){
+  characters.forEach(c=>owned.add(c.name));
 }
 
-function autoFill(){
-  if(teamA.children.length===4 && teamB.children.length===0){
-    [...pool.children].forEach(c=>teamB.appendChild(c));
-  }
-  if(teamB.children.length===4 && teamA.children.length===0){
-    [...pool.children].forEach(c=>teamA.appendChild(c));
-  }
+function img(c){
+  return `./icon/${c.name}_s.webp`;
 }
 
 function renderGrid(){
@@ -81,42 +67,36 @@ function renderGrid(){
   characters.forEach(c=>{
     const d=document.createElement('div');
     d.className='char'+(owned.has(c.name)?'':' off');
-    d.onclick=()=>{owned.has(c.name)?owned.delete(c.name):owned.add(c.name);save();renderGrid();};
     d.innerHTML=`<img src="${img(c)}"><span>${c.name}</span>`;
+    d.onclick=()=>{
+      owned.has(c.name)?owned.delete(c.name):owned.add(c.name);
+      localStorage.setItem('owned',JSON.stringify([...owned]));
+      renderGrid();
+    };
     grid.appendChild(d);
   });
 }
 
-function draw(){
+async function draw(){
   pool.innerHTML=teamA.innerHTML=teamB.innerHTML='';
-  const r4=document.getElementById('r4').checked;
-  const r5=document.getElementById('r5').checked;
+
+  const r4=r4El=document.getElementById('r4').checked;
+  const r5=r5El=document.getElementById('r5').checked;
   const els=[...document.querySelectorAll('.el:checked')].map(e=>e.value);
 
-  const list=characters.filter(c=>
+  const base=characters.filter(c=>
     owned.has(c.name)&&els.includes(c.element)&&
     ((c.rarity===4&&r4)||(c.rarity===5&&r5))
   );
 
-  if(list.length<8){alert('8人未満です');return;}
+  if(base.length<8){
+    alert('抽選対象が8人未満です');
+    return;
+  }
 
-  list.sort(()=>Math.random()-0.5).slice(0,8).forEach((c,i)=>{
-    const d=document.createElement('div');
-    d.className='card anim';
-    d.id='c'+i;
-    d.draggable=true;
-    d.ondragstart=drag;
-    d.style.animationDelay=`${i*0.1}s`;
-    d.innerHTML=`<img src="${img(c)}">${c.name}`;
-    pool.appendChild(d);
-  });
-}
-
-function resetTeams(){
-  pool.innerHTML='';
-  teamA.innerHTML='';
-  teamB.innerHTML='';
-}
-</script>
-</body>
-</html>
+  // 抽選演出
+  for(let i=0;i<15;i++){
+    pool.innerHTML='';
+    base.sort(()=>Math.random()-0.5).slice(0,8).forEach(c=>{
+      const d=document.createElement('div');
+      d.classNa
