@@ -23,8 +23,7 @@
 </div>
 
 <div class="center">
-  <button id="drawBtn">8人抽選</button>
-  <button id="redrawBtn">再抽選</button>
+  <button id="drawBtn">抽選</button>
   <button class="reset-btn" id="resetTeamBtn">編成リセット</button>
 </div>
 
@@ -122,62 +121,45 @@ function autoFillTeams(){
   }
 }
 
-/* ===== 抽選 ===== */
+/* ===== 抽選（新規 / 再抽選統合） ===== */
 drawBtn.onclick=async()=>{
-  pool.innerHTML=teamA.innerHTML=teamB.innerHTML='';
-  lockTeamA=lockTeamB=false;
-  updateLocks();
+  const isRedraw = lockTeamA || lockTeamB;
 
   const els=[...document.querySelectorAll('.el:checked')].map(e=>e.value);
-  const base=characters.filter(c=>
-    owned.has(c.name)&&
-    els.includes(c.element)&&
-    ((c.rarity===4&&r4.checked)||(c.rarity===5&&r5.checked))
-  );
 
-  if(base.length<8){
-    alert('抽選対象が8人未満です');
+  if(!isRedraw){
+    // --- 新規8人抽選 ---
+    pool.innerHTML=teamA.innerHTML=teamB.innerHTML='';
+    lockTeamA=lockTeamB=false;
+    updateLocks();
+
+    const base=characters.filter(c=>
+      owned.has(c.name)&&
+      els.includes(c.element)&&
+      ((c.rarity===4&&r4.checked)||(c.rarity===5&&r5.checked))
+    );
+
+    if(base.length<8){
+      alert('抽選対象が8人未満です');
+      return;
+    }
+
+    const result=shuffle(base).slice(0,8).map(c=>c.name);
+
+    for(const n of result){
+      pool.appendChild(createCard(n));
+    }
+
+    saveHistory(result);
+    updateURL(result);
     return;
   }
 
-  const result=shuffle(base).slice(0,8).map(c=>c.name);
-
-  const slots=[],active=Array(8).fill(true);
-  for(let i=0;i<8;i++){
-    const d=document.createElement('div');
-    d.className='card shuffling';
-    pool.appendChild(d);
-    slots.push(d);
-  }
-
-  const timer=setInterval(()=>{
-    slots.forEach((s,i)=>{
-      if(!active[i])return;
-      const c=base[Math.floor(Math.random()*base.length)];
-      s.innerHTML=`<img src="${icon(c.name)}"><span>${c.name}</span>`;
-    });
-  },80);
-
-  for(let i=0;i<8;i++){
-    await sleep(300);
-    active[i]=false;
-    slots[i].classList.remove('shuffling');
-    slots[i].replaceWith(createCard(result[i]));
-  }
-
-  clearInterval(timer);
-  saveHistory(result);
-  updateURL(result);
-};
-
-/* ===== 再抽選 ===== */
-redrawBtn.onclick=()=>{
+  // --- 再抽選 ---
   const fixed=new Set([
     ...(lockTeamA?[...teamA.children].map(c=>c.innerText):[]),
     ...(lockTeamB?[...teamB.children].map(c=>c.innerText):[])
   ]);
-
-  const els=[...document.querySelectorAll('.el:checked')].map(e=>e.value);
 
   const base=characters.filter(c=>
     owned.has(c.name)&&
@@ -228,11 +210,10 @@ redrawBtn.onclick=()=>{
   };
 });
 
-/* ===== ロック表示 ===== */
+/* ===== ロック ===== */
 function updateLocks(){
   lockA.textContent=lockTeamA?'🔒':'🔓';
   lockB.textContent=lockTeamB?'🔒':'🔓';
-
   boxA.classList.toggle('locked',lockTeamA);
   boxB.classList.toggle('locked',lockTeamB);
 }
@@ -297,7 +278,6 @@ resetOwnedBtn.onclick=()=>{
 
 /* ===== util ===== */
 const shuffle=a=>[...a].sort(()=>Math.random()-0.5);
-const sleep=ms=>new Promise(r=>setTimeout(r,ms));
 </script>
 
 </body>
