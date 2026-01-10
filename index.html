@@ -42,6 +42,11 @@
   </div>
 </div>
 
+<div class="history box">
+  <h2>抽選履歴</h2>
+  <ul id="history"></ul>
+</div>
+
 <div class="owned-header">
   <h2 class="sub">キャラ所持設定</h2>
   <button class="reset-btn small" id="resetOwnedBtn">所持設定リセット</button>
@@ -49,9 +54,6 @@
 <div id="grid" class="character-grid"></div>
 
 <script>
-/* =====================
-   グローバル
-===================== */
 let characters=[];
 let owned=new Set();
 let dragCard=null;
@@ -60,10 +62,9 @@ const pool=document.getElementById('pool');
 const teamA=document.getElementById('teamA');
 const teamB=document.getElementById('teamB');
 const grid=document.getElementById('grid');
+const historyEl=document.getElementById('history');
 
-/* =====================
-   JSON 読み込み
-===================== */
+/* ========= JSON ========= */
 fetch('./characters.json')
 .then(r=>r.json())
 .then(data=>{
@@ -71,15 +72,15 @@ fetch('./characters.json')
   const saved=JSON.parse(localStorage.getItem('owned')||'[]');
   owned=new Set(saved.length?saved:characters.map(c=>c.name));
   renderGrid();
+  loadFromURL();
+  renderHistory();
 });
 
 function icon(c){
   return `./icon/${c.name}_s.webp`;
 }
 
-/* =====================
-   所持設定
-===================== */
+/* ========= 所持 ========= */
 function renderGrid(){
   grid.innerHTML='';
   characters.forEach(c=>{
@@ -95,22 +96,19 @@ function renderGrid(){
   });
 }
 
-/* =====================
-   カード
-===================== */
-function createCard(c){
+/* ========= カード ========= */
+function createCard(name){
+  const c=characters.find(x=>x.name===name);
   const d=document.createElement('div');
   d.className='card';
-  d.innerHTML=`<img src="${icon(c)}">${c.name}`;
+  d.innerHTML=`<img src="${icon(c)}">${name}`;
   d.draggable=true;
   d.ondragstart=()=>dragCard=d;
   d.ondragend=()=>dragCard=null;
   return d;
 }
 
-/* =====================
-   抽選
-===================== */
+/* ========= 抽選 ========= */
 document.getElementById('drawBtn').onclick=async()=>{
   pool.innerHTML=teamA.innerHTML=teamB.innerHTML='';
 
@@ -124,83 +122,98 @@ document.getElementById('drawBtn').onclick=async()=>{
     ((c.rarity===4&&r4)||(c.rarity===5&&r5))
   );
 
-  if(base.length<8){
-    alert('抽選対象が8人未満です');
-    return;
-  }
+  if(base.length<8){alert('抽選対象が8人未満です');return;}
 
-  const result=shuffle(base).slice(0,8);
-  const slots=[];
-  const active=Array(8).fill(true);
+  const result=shuffle(base).slice(0,8).map(c=>c.name);
+  pool.innerHTML='';
+  result.forEach(n=>pool.appendChild(createCard(n)));
 
-  for(let i=0;i<8;i++){
-    const d=document.createElement('div');
-    d.className='card shuffling';
-    pool.appendChild(d);
-    slots.push(d);
-  }
-
-  const timer=setInterval(()=>{
-    slots.forEach((s,i)=>{
-      if(!active[i])return;
-      const c=base[Math.floor(Math.random()*base.length)];
-      s.innerHTML=`<img src="${icon(c)}">${c.name}`;
-    });
-  },80);
-
-  for(let i=0;i<8;i++){
-    await sleep(300);
-    active[i]=false;
-    slots[i].classList.remove('shuffling');
-    slots[i].replaceWith(createCard(result[i]));
-    slots[i]=pool.children[i];
-  }
-  clearInterval(timer);
+  saveHistory(result,[],[]);
+  updateURL(result,[],[]);
 };
 
-/* =====================
-   D&D
-===================== */
+/* ========= D&D ========= */
 [pool,teamA,teamB].forEach(list=>{
   list.ondragover=e=>e.preventDefault();
   list.ondrop=e=>{
     e.preventDefault();
     if(!dragCard)return;
-
     if(list!==pool && list.children.length>=4){
-      alert('4人までです');
-      return;
+      alert('4人までです');return;
     }
-
     list.appendChild(dragCard);
-
-    if(teamA.children.length===4)
-      [...pool.children].forEach(c=>teamB.appendChild(c));
-    if(teamB.children.length===4)
-      [...pool.children].forEach(c=>teamA.appendChild(c));
+    sync();
   };
 });
 
-/* =====================
-   リセット
-===================== */
-// 編成リセット
+function sync(){
+  const p=[...pool.children].map(c=>c.textContent);
+  const a=[...teamA.children].map(c=>c.textContent);
+  const b=[...teamB.children].map(c=>c.textContent);
+  updateURL(p,a,b);
+  saveHistory(p,a,b);
+}
+
+/* ========= 履歴 ========= */
+function saveHistory(p,a,b){
+  let h=JSON.parse(localStorage.getItem('history')||'[]');
+  h.unshift({p,a,b,time:Date.now()});
+  h=h.slice(0,10);
+  localStorage.setItem('history',JSON.stringify(h));
+  renderHistory();
+}
+
+function renderHistory(){
+  historyEl.innerHTML='';
+  const h=JSON.parse(localStorage.getItem('history')||'[]');
+  h.forEach((x,i)=>{
+    const li=document.createElement('li');
+    li.textContent=new Date(x.time).toLocaleString();
+    li.onclick=()=>restore(x);
+    historyEl.appendChild(li);
+  });
+}
+
+function restore(x){
+  pool.innerHTML=teamA.innerHTML=teamB.innerHTML='';
+  x.p.forEach(n=>pool.appendChild(createCard(n)));
+  x.a.forEach(n=>teamA.appendChild(createCard(n)));
+  x.b.forEach(n=>teamB.appendChild(createCard(n)));
+  updateURL(x.p,x.a,x.b);
+}
+
+/* ========= URL ========= */
+function updateURL(p,a,b){
+  const q=new URLSearchParams();
+  if(p.length)q.set('p',p.join(','));
+  if(a.length)q.set('a',a.join(','));
+  if(b.length)q.set('b',b.join(','));
+  history.replaceState(null,'','?'+q.toString());
+}
+
+function loadFromURL(){
+  const q=new URLSearchParams(location.search);
+  if(!q.has('p')&&!q.has('a')&&!q.has('b'))return;
+  pool.innerHTML=teamA.innerHTML=teamB.innerHTML='';
+  q.get('p')?.split(',').forEach(n=>pool.appendChild(createCard(n)));
+  q.get('a')?.split(',').forEach(n=>teamA.appendChild(createCard(n)));
+  q.get('b')?.split(',').forEach(n=>teamB.appendChild(createCard(n)));
+}
+
+/* ========= リセット ========= */
 document.getElementById('resetTeamBtn').onclick=()=>{
   pool.innerHTML=teamA.innerHTML=teamB.innerHTML='';
+  history.replaceState(null,'',location.pathname);
 };
 
-// 所持設定リセット
 document.getElementById('resetOwnedBtn').onclick=()=>{
   owned=new Set(characters.map(c=>c.name));
   localStorage.removeItem('owned');
   renderGrid();
 };
 
-/* =====================
-   util
-===================== */
+/* ========= util ========= */
 function shuffle(a){return [...a].sort(()=>Math.random()-0.5);}
-function sleep(ms){return new Promise(r=>setTimeout(r,ms));}
 </script>
 
 </body>
