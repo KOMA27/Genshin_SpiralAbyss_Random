@@ -45,23 +45,33 @@
 <h2 style="text-align:center;margin-top:30px">キャラ所持設定</h2>
 <div id="grid" class="character-grid"></div>
 
-<script src="characters.json"></script>
 <script>
+let characters=[];
+let owned=new Set();
+
 const pool=document.getElementById('pool');
 const teamA=document.getElementById('teamA');
 const teamB=document.getElementById('teamB');
 const grid=document.getElementById('grid');
 
-let owned=new Set(JSON.parse(localStorage.getItem('owned')||'[]'));
+/* ---------- 初期ロード ---------- */
+fetch('./characters.json')
+  .then(r=>r.json())
+  .then(data=>{
+    characters=data;
 
-if(owned.size===0){
-  characters.forEach(c=>owned.add(c.name));
-}
+    owned=new Set(JSON.parse(localStorage.getItem('owned')||'[]'));
+    if(owned.size===0){
+      characters.forEach(c=>owned.add(c.name));
+    }
+    renderGrid();
+  });
 
 function img(c){
   return `./icon/${c.name}_s.webp`;
 }
 
+/* ---------- UI ---------- */
 function renderGrid(){
   grid.innerHTML='';
   characters.forEach(c=>{
@@ -77,11 +87,12 @@ function renderGrid(){
   });
 }
 
+/* ---------- 抽選 ---------- */
 async function draw(){
   pool.innerHTML=teamA.innerHTML=teamB.innerHTML='';
 
-  const r4=r4El=document.getElementById('r4').checked;
-  const r5=r5El=document.getElementById('r5').checked;
+  const r4=document.getElementById('r4').checked;
+  const r5=document.getElementById('r5').checked;
   const els=[...document.querySelectorAll('.el:checked')].map(e=>e.value);
 
   const base=characters.filter(c=>
@@ -99,4 +110,39 @@ async function draw(){
     pool.innerHTML='';
     base.sort(()=>Math.random()-0.5).slice(0,8).forEach(c=>{
       const d=document.createElement('div');
-      d.classNa
+      d.className='card shuffling';
+      d.innerHTML=`<img src="${img(c)}">${c.name}`;
+      pool.appendChild(d);
+    });
+    await new Promise(r=>setTimeout(r,80));
+  }
+
+  // 確定
+  pool.innerHTML='';
+  base.sort(()=>Math.random()-0.5).slice(0,8).forEach((c,i)=>{
+    const d=document.createElement('div');
+    d.className='card';
+    d.id='c'+i;
+    d.draggable=true;
+    d.ondragstart=drag;
+    d.innerHTML=`<img src="${img(c)}">${c.name}`;
+    pool.appendChild(d);
+  });
+}
+
+/* ---------- リセット ---------- */
+function resetAll(){
+  owned=new Set(characters.map(c=>c.name));
+  localStorage.removeItem('owned');
+  pool.innerHTML=teamA.innerHTML=teamB.innerHTML='';
+  renderGrid();
+}
+
+/* ---------- D&D ---------- */
+function drag(ev){ev.dataTransfer.setData('text',ev.target.id);}
+function allowDrop(ev){ev.preventDefault();}
+function drop(ev,target){
+  ev.preventDefault();
+  const id=ev.dataTransfer.getData('text');
+  const el=document.getElementById(id);
+  const bo
