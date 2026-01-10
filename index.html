@@ -48,6 +48,7 @@
   <h2 class="sub">キャラ所持設定</h2>
   <button class="reset-btn small" id="resetOwnedBtn">所持設定リセット</button>
 </div>
+
 <div id="grid" class="character-grid"></div>
 
 <div class="history">
@@ -72,7 +73,6 @@ const historyEl=document.getElementById('history');
 
 const icon=n=>`./icon/${n}_s.webp`;
 
-/* ===== 初期化 ===== */
 fetch('./characters.json')
 .then(r=>r.json())
 .then(data=>{
@@ -84,7 +84,6 @@ fetch('./characters.json')
   renderHistory();
 });
 
-/* ===== 所持設定 ===== */
 function renderGrid(){
   grid.innerHTML='';
   characters.forEach(c=>{
@@ -100,7 +99,6 @@ function renderGrid(){
   });
 }
 
-/* ===== カード ===== */
 function createCard(name){
   const d=document.createElement('div');
   d.className='card';
@@ -111,7 +109,6 @@ function createCard(name){
   return d;
 }
 
-/* ===== 自動振り分け ===== */
 function autoFillTeams(){
   if(teamA.children.length===4 && teamB.children.length===0){
     [...pool.children].forEach(c=>teamB.appendChild(c));
@@ -121,12 +118,10 @@ function autoFillTeams(){
   }
 }
 
-/* ===== 抽選 ===== */
 drawBtn.onclick=()=>{
   const els=[...document.querySelectorAll('.el:checked')].map(e=>e.value);
   const isRedraw = lockTeamA || lockTeamB;
 
-  /* === 新規抽選 === */
   if(!isRedraw){
     pool.innerHTML=teamA.innerHTML=teamB.innerHTML='';
     lockTeamA=lockTeamB=false;
@@ -145,13 +140,11 @@ drawBtn.onclick=()=>{
 
     const result=shuffle(base).slice(0,8).map(c=>c.name);
     result.forEach(n=>pool.appendChild(createCard(n)));
-
     saveHistory(result);
     updateURL(result);
     return;
   }
 
-  /* === ロックあり再抽選 === */
   pool.innerHTML='';
   if(!lockTeamA) teamA.innerHTML='';
   if(!lockTeamB) teamB.innerHTML='';
@@ -168,36 +161,26 @@ drawBtn.onclick=()=>{
     !fixed.includes(c.name)
   );
 
-  const need=8-fixed.length;
-  const draw=shuffle(base).slice(0,need).map(c=>c.name);
+  const draw=shuffle(base).slice(0,8-fixed.length).map(c=>c.name);
   draw.forEach(n=>pool.appendChild(createCard(n)));
 
-  const historySet=[...fixed, ...draw];
-  saveHistory(historySet);
-  updateURL(historySet);
+  saveHistory([...fixed,...draw]);
+  updateURL([...fixed,...draw]);
 };
 
-/* ===== D&D ===== */
 [pool,teamA,teamB].forEach(list=>{
   list.ondragover=e=>e.preventDefault();
   list.ondrop=e=>{
     e.preventDefault();
     if(!dragCard)return;
-
     if(list===teamA&&lockTeamA)return;
     if(list===teamB&&lockTeamB)return;
-
-    if(list!==pool && list.children.length>=4){
-      alert('4人までです');
-      return;
-    }
-
+    if(list!==pool && list.children.length>=4)return;
     list.appendChild(dragCard);
     autoFillTeams();
   };
 });
 
-/* ===== ロック表示 ===== */
 function updateLocks(){
   lockA.textContent=lockTeamA?'🔒':'🔓';
   lockB.textContent=lockTeamB?'🔒':'🔓';
@@ -208,7 +191,6 @@ function updateLocks(){
 lockA.onclick=()=>{lockTeamA=!lockTeamA;updateLocks();}
 lockB.onclick=()=>{lockTeamB=!lockTeamB;updateLocks();}
 
-/* ===== 履歴 ===== */
 function saveHistory(arr){
   let h=JSON.parse(localStorage.getItem('history')||'[]');
   h.unshift({arr,time:Date.now()});
@@ -224,11 +206,7 @@ function renderHistory(){
     const d=document.createElement('div');
     d.className='history-item';
     d.onclick=()=>restore(x.arr);
-    d.innerHTML=`
-      <div class="history-time">${new Date(x.time).toLocaleString()}</div>
-      <div class="history-icons">
-        ${x.arr.map(n=>`<img src="${icon(n)}">`).join('')}
-      </div>`;
+    d.innerHTML=x.arr.map(n=>`<img src="${icon(n)}">`).join('');
     historyEl.appendChild(d);
   });
 }
@@ -249,7 +227,6 @@ function restoreFromURL(){
   q.get('p').split(',').forEach(n=>pool.appendChild(createCard(n)));
 }
 
-/* ===== リセット ===== */
 resetTeamBtn.onclick=()=>{
   pool.innerHTML=teamA.innerHTML=teamB.innerHTML='';
   lockTeamA=lockTeamB=false;
@@ -263,7 +240,6 @@ resetOwnedBtn.onclick=()=>{
   renderGrid();
 };
 
-/* ===== util ===== */
 const shuffle=a=>[...a].sort(()=>Math.random()-0.5);
 </script>
 
