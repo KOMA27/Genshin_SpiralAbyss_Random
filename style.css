@@ -1,5 +1,6 @@
+/* ===== 原神風ダークテーマ ===== */
 :root{
-  --bg:#020617;
+  --bg:#0f172a;
   --panel:#1e293b;
   --border:#334155;
   --text:#e5e7eb;
@@ -13,49 +14,50 @@ body{
   padding:20px;
   font-family:"Segoe UI",sans-serif;
   background:radial-gradient(circle at top,#1e293b,#020617);
-  color:var(--text);
+  color:var(--text)
 }
 
 h1{
   text-align:center;
-  margin-bottom:20px;
   letter-spacing:.1em;
+  margin-bottom:20px
 }
 
 .sub{
-  text-align:center;
   margin-top:30px;
+  text-align:center
 }
 
+/* ===== フィルター ===== */
 .filters{
   display:flex;
   flex-wrap:wrap;
-  gap:8px;
+  gap:10px;
   justify-content:center;
-  margin-bottom:14px;
+  margin-bottom:14px
 }
-
 .filters label{
   background:var(--panel);
   border:1px solid var(--border);
   padding:6px 10px;
   border-radius:999px;
-  cursor:pointer;
+  cursor:pointer
 }
 
+/* ===== ボタン ===== */
 .center{
   text-align:center;
-  margin-bottom:12px;
+  margin-bottom:14px
 }
-
 button{
   background:linear-gradient(135deg,#38bdf8,#0ea5e9);
   border:none;
-  border-radius:999px;
+  color:#000;
   padding:16px 36px;
-  font-size:20px;
+  border-radius:999px;
   font-weight:bold;
-  cursor:pointer;
+  font-size:20px;
+  cursor:pointer
 }
 
 .reset-btn{
@@ -63,56 +65,67 @@ button{
   color:#e5e7eb;
   font-size:14px;
   padding:10px 20px;
-  margin-left:10px;
+  margin-left:10px
+}
+.reset-btn.small{
+  padding:6px 14px;
+  font-size:12px
 }
 
+/* ===== 抽選アニメ ===== */
+.shuffling{
+  animation:flash .2s linear infinite alternate
+}
+@keyframes flash{
+  from{opacity:.4}
+  to{opacity:1}
+}
+
+/* ===== キャラ一覧 ===== */
 .character-grid{
   display:grid;
   grid-template-columns:repeat(auto-fill,80px);
   gap:12px;
   justify-content:center;
+  margin-bottom:20px
 }
-
 .char{
   text-align:center;
-  cursor:pointer;
+  cursor:pointer
 }
-
 .char img{
   width:64px;
   height:64px;
   border-radius:12px;
-  box-shadow:0 0 12px #000a;
+  object-fit:cover;
+  box-shadow:0 0 12px #000a
 }
-
 .char.off img{
-  filter:grayscale(100%) brightness(50%);
+  filter:grayscale(100%) brightness(50%)
 }
-
 .char span{
-  display:block;
   font-size:10px;
-  margin-top:4px;
+  display:block;
+  margin-top:4px
 }
 
+/* ===== 抽選・編成 ===== */
 .drag-area{
   display:flex;
   gap:20px;
-  flex-wrap:wrap;
+  flex-wrap:wrap
 }
-
 .box{
-  flex:1;
-  min-width:260px;
   background:var(--panel);
   border:1px solid var(--border);
   border-radius:14px;
   padding:12px;
+  flex:1;
+  min-width:260px
 }
-
 .box h2{
   text-align:center;
-  margin:6px 0 10px;
+  margin:6px 0 10px
 }
 
 .list{
@@ -122,73 +135,74 @@ button{
   padding:8px;
   display:grid;
   grid-template-columns:repeat(auto-fill,120px);
-  gap:6px;
+  gap:6px
 }
 
+/* ★ 抽選結果キャラカード */
 .card{
   display:flex;
   align-items:center;
   background:#020617;
-  border:1px solid var(--border);
-  border-radius:10px;
   padding:6px;
-  cursor:grab;
+  border-radius:10px;
+  cursor:grab
 }
-
 .card img{
   width:40px;
   height:40px;
   border-radius:8px;
   margin-right:6px;
+  object-fit:cover
+}
+.card span{
+  font-size:10px;   /* ★ キャラ名を小さく */
+  white-space:nowrap
 }
 
-.shuffling{
-  animation:flash .2s linear infinite alternate;
-}
-
-@keyframes flash{
-  from{opacity:.4}
-  to{opacity:1}
-}
-
-.history-item.small{
+/* ===== 所持設定 ===== */
+.owned-header{
   display:flex;
-  flex-wrap:wrap;
-  gap:4px;
-  cursor:pointer;
-  padding:6px;
+  align-items:center;
+  justify-content:center;
+  gap:10px;
+  margin-top:20px
 }
 
-.history-item.small img{
-  width:28px;
-  height:28px;
-  border-radius:6px;
+/* ===== 抽選履歴（2列） ===== */
+.history{
+  margin-top:30px
 }
 
-/* 抽選履歴 */
+#history{
+  display:grid;
+  grid-template-columns:repeat(2,1fr); /* ★ 2列 */
+  gap:10px;
+}
+
 .history-item{
   background:#020617;
-  border-radius:10px;
+  border-radius:12px;
   padding:8px;
-  margin-bottom:8px;
   cursor:pointer;
 }
 
 .history-time{
   font-size:11px;
   opacity:.7;
-  margin-bottom:4px;
+  margin-bottom:6px;
+  text-align:center
 }
 
 .history-icons{
   display:flex;
   flex-wrap:wrap;
   gap:4px;
+  justify-content:center
 }
 
 .history-icons img{
-  width:28px;
-  height:28px;
-  object-fit:cover;   /* ★重要：サイズ統一 */
+  width:26px;
+  height:26px;
+  object-fit:cover;
   border-radius:6px;
 }
