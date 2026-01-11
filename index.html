@@ -113,14 +113,13 @@ function createCard(name){
   return d;
 }
 
-/* ===== スロット抽選演出 ===== */
-function slotDraw(result, onComplete){
-  pool.innerHTML='';
+/* ===== スロット演出（人数可変） ===== */
+function slotDraw(drawNames, onComplete){
   const slots=[];
   const timers=[];
 
-  for(let i=0;i<8;i++){
-    const c=createCard(result[0]);
+  drawNames.forEach((_,i)=>{
+    const c=createCard(drawNames[0]);
     c.classList.add('shuffling');
     pool.appendChild(c);
     slots.push(c);
@@ -130,16 +129,15 @@ function slotDraw(result, onComplete){
       c.querySelector('img').src=icon(r);
       c.querySelector('span').textContent=r;
     },80);
-  }
+  });
 
-  result.forEach((name,i)=>{
+  drawNames.forEach((name,i)=>{
     setTimeout(()=>{
       clearInterval(timers[i]);
       slots[i].classList.remove('shuffling');
       slots[i].querySelector('img').src=icon(name);
       slots[i].querySelector('span').textContent=name;
-
-      if(i===result.length-1 && onComplete) onComplete();
+      if(i===drawNames.length-1 && onComplete) onComplete();
     },800*(i+1));
   });
 }
@@ -147,7 +145,6 @@ function slotDraw(result, onComplete){
 /* ===== 抽選 ===== */
 drawBtn.onclick=()=>{
   const els=[...document.querySelectorAll('.el:checked')].map(e=>e.value);
-  const isRedraw=lockTeamA||lockTeamB;
 
   pool.innerHTML='';
   if(!lockTeamA) teamA.innerHTML='';
@@ -165,12 +162,16 @@ drawBtn.onclick=()=>{
     !fixed.includes(c.name)
   );
 
-  if(base.length+fixed.length<8){
-    alert('抽選対象が8人未満です');
+  const need=8-fixed.length;
+  if(base.length<need){
+    alert('抽選対象が不足しています');
     return;
   }
 
-  const draw=shuffle(base).slice(0,8-fixed.length).map(c=>c.name);
+  // 先にロック済キャラを表示
+  fixed.forEach(n=>pool.appendChild(createCard(n)));
+
+  const draw=shuffle(base).slice(0,need).map(c=>c.name);
   const result=[...fixed,...draw];
 
   slotDraw(draw,()=>{
