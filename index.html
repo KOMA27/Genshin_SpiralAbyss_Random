@@ -30,7 +30,7 @@
 <div class="drag-area">
   <div class="box">
     <h2>抽選結果</h2>
-    <div id="pool" class="list result-anim"></div>
+    <div id="pool" class="list"></div>
   </div>
 
   <div class="box" id="boxA">
@@ -46,11 +46,10 @@
 
 <div class="owned-header">
   <h2 class="sub">キャラ所持設定</h2>
-  <div class="center">
-    <button class="reset-btn small" id="resetOwnedBtn">所持設定リセット</button>
-  </div>
+<div class="center">
+  <button class="reset-btn small" id="resetOwnedBtn">所持設定リセット</button>
 </div>
-
+</div>
 <div id="grid" class="character-grid"></div>
 
 <div class="history">
@@ -114,13 +113,6 @@ function createCard(name){
   return d;
 }
 
-/* ===== 抽選アニメーション ===== */
-function animateResult(){
-  pool.classList.remove('show');
-  void pool.offsetWidth;
-  pool.classList.add('show');
-}
-
 /* ===== 自動振り分け ===== */
 function autoFillTeams(){
   if(teamA.children.length===4 && teamB.children.length===0){
@@ -136,60 +128,55 @@ drawBtn.onclick=()=>{
   const els=[...document.querySelectorAll('.el:checked')].map(e=>e.value);
   const isRedraw = lockTeamA || lockTeamB;
 
-  pool.classList.remove('show');
-
-  setTimeout(()=>{
-
-    if(!isRedraw){
-      pool.innerHTML=teamA.innerHTML=teamB.innerHTML='';
-      lockTeamA=lockTeamB=false;
-      updateLocks();
-
-      const base=characters.filter(c=>
-        owned.has(c.name)&&
-        els.includes(c.element)&&
-        ((c.rarity===4&&r4.checked)||(c.rarity===5&&r5.checked))
-      );
-
-      if(base.length<8){
-        alert('抽選対象が8人未満です');
-        return;
-      }
-
-      const result=shuffle(base).slice(0,8).map(c=>c.name);
-      result.forEach(n=>pool.appendChild(createCard(n)));
-      saveHistory(result);
-      updateURL(result);
-      animateResult();
-      return;
-    }
-
-    pool.innerHTML='';
-    if(!lockTeamA) teamA.innerHTML='';
-    if(!lockTeamB) teamB.innerHTML='';
-
-    const fixed=[
-      ...(lockTeamA?[...teamA.children].map(c=>c.innerText):[]),
-      ...(lockTeamB?[...teamB.children].map(c=>c.innerText):[])
-    ];
+  /* === 新規抽選 === */
+  if(!isRedraw){
+    pool.innerHTML=teamA.innerHTML=teamB.innerHTML='';
+    lockTeamA=lockTeamB=false;
+    updateLocks();
 
     const base=characters.filter(c=>
       owned.has(c.name)&&
       els.includes(c.element)&&
-      ((c.rarity===4&&r4.checked)||(c.rarity===5&&r5.checked))&&
-      !fixed.includes(c.name)
+      ((c.rarity===4&&r4.checked)||(c.rarity===5&&r5.checked))
     );
 
-    const need=8-fixed.length;
-    const draw=shuffle(base).slice(0,need).map(c=>c.name);
-    draw.forEach(n=>pool.appendChild(createCard(n)));
+    if(base.length<8){
+      alert('抽選対象が8人未満です');
+      return;
+    }
 
-    const historySet=[...fixed, ...draw];
-    saveHistory(historySet);
-    updateURL(historySet);
-    animateResult();
+    const result=shuffle(base).slice(0,8).map(c=>c.name);
+    result.forEach(n=>pool.appendChild(createCard(n)));
 
-  },600);
+    saveHistory(result);
+    updateURL(result);
+    return;
+  }
+
+  /* === ロックあり再抽選 === */
+  pool.innerHTML='';
+  if(!lockTeamA) teamA.innerHTML='';
+  if(!lockTeamB) teamB.innerHTML='';
+
+  const fixed=[
+    ...(lockTeamA?[...teamA.children].map(c=>c.innerText):[]),
+    ...(lockTeamB?[...teamB.children].map(c=>c.innerText):[])
+  ];
+
+  const base=characters.filter(c=>
+    owned.has(c.name)&&
+    els.includes(c.element)&&
+    ((c.rarity===4&&r4.checked)||(c.rarity===5&&r5.checked))&&
+    !fixed.includes(c.name)
+  );
+
+  const need=8-fixed.length;
+  const draw=shuffle(base).slice(0,need).map(c=>c.name);
+  draw.forEach(n=>pool.appendChild(createCard(n)));
+
+  const historySet=[...fixed, ...draw];
+  saveHistory(historySet);
+  updateURL(historySet);
 };
 
 /* ===== D&D ===== */
@@ -198,24 +185,28 @@ drawBtn.onclick=()=>{
   list.ondrop=e=>{
     e.preventDefault();
     if(!dragCard)return;
+
     if(list===teamA&&lockTeamA)return;
     if(list===teamB&&lockTeamB)return;
+
     if(list!==pool && list.children.length>=4){
       alert('4人までです');
       return;
     }
+
     list.appendChild(dragCard);
     autoFillTeams();
   };
 });
 
-/* ===== ロック ===== */
+/* ===== ロック表示 ===== */
 function updateLocks(){
   lockA.textContent=lockTeamA?'🔒':'🔓';
   lockB.textContent=lockTeamB?'🔒':'🔓';
   boxA.classList.toggle('locked',lockTeamA);
   boxB.classList.toggle('locked',lockTeamB);
 }
+
 lockA.onclick=()=>{lockTeamA=!lockTeamA;updateLocks();}
 lockB.onclick=()=>{lockTeamB=!lockTeamB;updateLocks();}
 
@@ -227,6 +218,7 @@ function saveHistory(arr){
   localStorage.setItem('history',JSON.stringify(h));
   renderHistory();
 }
+
 function renderHistory(){
   historyEl.innerHTML='';
   const h=JSON.parse(localStorage.getItem('history')||'[]');
@@ -236,18 +228,23 @@ function renderHistory(){
     d.onclick=()=>restore(x.arr);
     d.innerHTML=`
       <div class="history-time">${new Date(x.time).toLocaleString()}</div>
-      <div class="history-icons">${x.arr.map(n=>`<img src="${icon(n)}">`).join('')}</div>`;
+      <div class="history-icons">
+        ${x.arr.map(n=>`<img src="${icon(n)}">`).join('')}
+      </div>`;
     historyEl.appendChild(d);
   });
 }
+
 function restore(arr){
   pool.innerHTML=teamA.innerHTML=teamB.innerHTML='';
   arr.forEach(n=>pool.appendChild(createCard(n)));
   updateURL(arr);
 }
+
 function updateURL(arr){
   history.replaceState(null,'','?p='+arr.join(','));
 }
+
 function restoreFromURL(){
   const q=new URLSearchParams(location.search);
   if(!q.has('p'))return;
@@ -261,12 +258,14 @@ resetTeamBtn.onclick=()=>{
   updateLocks();
   history.replaceState(null,'',location.pathname);
 };
+
 resetOwnedBtn.onclick=()=>{
   owned=new Set(characters.map(c=>c.name));
   localStorage.removeItem('owned');
   renderGrid();
 };
 
+/* ===== util ===== */
 const shuffle=a=>[...a].sort(()=>Math.random()-0.5);
 </script>
 
