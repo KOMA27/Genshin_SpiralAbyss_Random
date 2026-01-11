@@ -147,31 +147,50 @@ drawBtn.onclick=()=>{
 
 const result = shuffle(base).slice(0,8).map(c=>c.name);
 
-// シャッフル用カードを先に8枚作る
+// --- 抽選中表示（アイコン＋名前を高速切替） ---
 pool.innerHTML='';
 const shuffleCards=[];
+
 for(let i=0;i<8;i++){
   const d=document.createElement('div');
   d.className='card shuffling';
+
   const img=document.createElement('img');
-  img.src=icon(base[Math.floor(Math.random()*base.length)].name);
+  const span=document.createElement('span');
+
+  const c=base[Math.floor(Math.random()*base.length)];
+  img.src=icon(c.name);
+  span.textContent=c.name;
+
   d.appendChild(img);
+  d.appendChild(span);
   pool.appendChild(d);
-  shuffleCards.push(img);
+
+  shuffleCards.push({img, span});
 }
 
-// 一定間隔でアイコンを高速切り替え
+// 高速シャッフル
 const interval=setInterval(()=>{
-  shuffleCards.forEach(img=>{
-    img.src=icon(base[Math.floor(Math.random()*base.length)].name);
+  shuffleCards.forEach(o=>{
+    const c=base[Math.floor(Math.random()*base.length)];
+    o.img.src=icon(c.name);
+    o.span.textContent=c.name;
   });
 },100);
 
-// 少し待って結果確定
+// --- 1枚ずつ確定表示 ---
 setTimeout(()=>{
   clearInterval(interval);
   pool.innerHTML='';
-  result.forEach(n=>pool.appendChild(createCard(n)));
+
+  let i=0;
+  const reveal=setInterval(()=>{
+    pool.appendChild(createCard(result[i]));
+    i++;
+    if(i>=result.length){
+      clearInterval(reveal);
+    }
+  },150);
 },1200);
 
     saveHistory(result);
