@@ -46,9 +46,9 @@
 
 <div class="owned-header">
   <h2 class="sub">キャラ所持設定</h2>
-<div class="center">
-  <button class="reset-btn small" id="resetOwnedBtn">所持設定リセット</button>
-</div>
+  <div class="center">
+    <button class="reset-btn small" id="resetOwnedBtn">所持設定リセット</button>
+  </div>
 </div>
 <div id="grid" class="character-grid"></div>
 
@@ -113,6 +113,23 @@ function createCard(name){
   return d;
 }
 
+/* ===== 抽選アニメーション ===== */
+function drawWithAnimation(names, onComplete){
+  pool.innerHTML='';
+  pool.classList.add('shuffling');
+
+  let i=0;
+  const timer=setInterval(()=>{
+    pool.appendChild(createCard(names[i]));
+    i++;
+    if(i>=names.length){
+      clearInterval(timer);
+      pool.classList.remove('shuffling');
+      if(onComplete) onComplete();
+    }
+  },300);
+}
+
 /* ===== 自動振り分け ===== */
 function autoFillTeams(){
   if(teamA.children.length===4 && teamB.children.length===0){
@@ -146,10 +163,10 @@ drawBtn.onclick=()=>{
     }
 
     const result=shuffle(base).slice(0,8).map(c=>c.name);
-    result.forEach(n=>pool.appendChild(createCard(n)));
-
-    saveHistory(result);
-    updateURL(result);
+    drawWithAnimation(result,()=>{
+      saveHistory(result);
+      updateURL(result);
+    });
     return;
   }
 
@@ -172,11 +189,12 @@ drawBtn.onclick=()=>{
 
   const need=8-fixed.length;
   const draw=shuffle(base).slice(0,need).map(c=>c.name);
-  draw.forEach(n=>pool.appendChild(createCard(n)));
 
-  const historySet=[...fixed, ...draw];
-  saveHistory(historySet);
-  updateURL(historySet);
+  drawWithAnimation(draw,()=>{
+    const historySet=[...fixed,...draw];
+    saveHistory(historySet);
+    updateURL(historySet);
+  });
 };
 
 /* ===== D&D ===== */
