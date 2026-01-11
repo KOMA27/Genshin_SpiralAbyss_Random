@@ -145,8 +145,22 @@ drawBtn.onclick=()=>{
       return;
     }
 
-    const result=shuffle(base).slice(0,8).map(c=>c.name);
-    result.forEach(n=>pool.appendChild(createCard(n)));
+      const result = shuffle(base).slice(0,8).map(c=>c.name);
+      
+      // 一旦シャッフル演出用のダミーを表示
+      pool.innerHTML='';
+      for(let i=0;i<8;i++){
+        const d=document.createElement('div');
+        d.className='card shuffling';
+        d.textContent='抽選中…';
+        pool.appendChild(d);
+      }
+      
+      // 少し待ってから結果を表示
+      setTimeout(()=>{
+        pool.innerHTML='';
+        result.forEach(n=>pool.appendChild(createCard(n)));
+      }, 1200);
 
     saveHistory(result);
     updateURL(result);
