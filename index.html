@@ -11,6 +11,9 @@
 
 <div class="filter-box">
   <h2 class="sub">抽選条件フィルタ</h2>
+  <div class="center">
+    <button id="resetFilterBtn" class="reset-btn">フィルタリセット</button>
+  </div>
   <div class="filters">
     <label><input type="checkbox" id="r4" checked>★4</label>
     <label><input type="checkbox" id="r5" checked>★5</label>
@@ -80,7 +83,8 @@ const grid=document.getElementById('grid');
 const historyEl=document.getElementById('history');
 const counter=document.getElementById('counter');
 const supplementInfo=document.getElementById('supplementInfo');
-
+const resetFilterBtn = document.getElementById('resetFilterBtn');
+  
 const icon=n=>`./icon/${n}_s.webp`;
 
 /* ===== 初期化 ===== */
@@ -313,6 +317,16 @@ function updateCounter(){
   counter.textContent=`抽選済み ${usedSurvival.size} / ${getBaseNormal().length}`;
   counter.style.display='block';
 }
+resetFilterBtn.onclick = () => {
+// ★レアリティ
+r4.checked = true;
+r5.checked = true;
+
+// 元素
+document.querySelectorAll('.el').forEach(el => {
+  el.checked = true;
+});
+};
 resetSurvivalBtn.onclick=()=>{
   usedSurvival.clear();
   localStorage.removeItem('usedSurvival');
