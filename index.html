@@ -100,7 +100,7 @@ function getElements(){
   return [...document.querySelectorAll('.el:checked')].map(e=>e.value);
 }
 function passElementFilter(c, els){
-  return c.element === "―" || els.includes(c.element);
+  return !c.element || els.includes(c.element);
 }
 function getBaseNormal(){
   const els=getElements();
