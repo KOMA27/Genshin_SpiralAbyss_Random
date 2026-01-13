@@ -29,6 +29,7 @@
   <button id="drawBtn">抽選</button>
   <button id="survivalDrawBtn" class="survival">サバイバルモード抽選</button>
   <button id="resetTeamBtn" class="reset-btn">編成リセット</button>
+  <button id="resetResultBtn" class="reset-btn">抽選結果リセット</button>
 </div>
 
 <div id="counter" class="counter" style="display:none"></div>
@@ -144,7 +145,7 @@ function createCard(n){
   return d;
 }
 
-/* ===== スロット ===== */
+/* ===== スロット（高速化済） ===== */
 function slotDraw(draw,onEnd){
   pool.innerHTML='';
   const timers=[];
@@ -156,14 +157,14 @@ function slotDraw(draw,onEnd){
       const r=characters[Math.floor(Math.random()*characters.length)].name;
       c.querySelector('img').src=icon(r);
       c.querySelector('span').textContent=r;
-    },80);
+    },40); // ← 倍速
     setTimeout(()=>{
       clearInterval(timers[i]);
       c.classList.remove('shuffling');
       c.querySelector('img').src=icon(draw[i]);
       c.querySelector('span').textContent=draw[i];
       if(i===draw.length-1&&onEnd)onEnd();
-    },800*(i+1));
+    },400*(i+1)); // ← 倍速
   });
 }
 
@@ -201,6 +202,22 @@ function doDraw(isSurvival){
 
 drawBtn.onclick=()=>doDraw(false);
 survivalDrawBtn.onclick=()=>doDraw(true);
+
+/* ===== リセット ===== */
+
+// 編成リセット：前半・後半 → 抽選結果に戻す
+resetTeamBtn.onclick=()=>{
+  [...teamA.children,...teamB.children].forEach(c=>pool.appendChild(c));
+  teamA.innerHTML='';
+  teamB.innerHTML='';
+};
+
+// 抽選結果リセット：全消去
+resetResultBtn.onclick=()=>{
+  pool.innerHTML=teamA.innerHTML=teamB.innerHTML='';
+  lockTeamA=lockTeamB=false;
+  history.replaceState(null,'',location.pathname);
+};
 
 /* ===== ロック ===== */
 function updateLocks(){
@@ -248,13 +265,7 @@ function restoreFromURL(){
   q.get('p').split(',').forEach(n=>pool.appendChild(createCard(n)));
 }
 
-/* ===== リセット ===== */
-resetTeamBtn.onclick=()=>{
-  pool.innerHTML=teamA.innerHTML=teamB.innerHTML='';
-  lockTeamA=lockTeamB=false;
-  updateLocks();
-  history.replaceState(null,'',location.pathname);
-};
+/* ===== その他リセット ===== */
 resetSurvivalBtn.onclick=()=>{
   usedSurvival.clear();
   localStorage.removeItem('usedSurvival');
@@ -266,7 +277,6 @@ resetOwnedBtn.onclick=()=>{
   localStorage.removeItem('owned');
   renderGrid();
 };
-
 </script>
 
 </body>
