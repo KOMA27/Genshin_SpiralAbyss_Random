@@ -166,7 +166,97 @@ function doSurvivalDraw(){
 survivalDrawBtn.onclick=doSurvivalDraw;
 
 /* ===== 省略なし：履歴・URL・リセット・グリッド ===== */
-//（ここは前回提示コードと同一のため動作確認済）
+/* ===== リセット ===== */
+resetTeamBtn.onclick=()=>{
+  [...teamA.children,...teamB.children].forEach(c=>pool.appendChild(c));
+  teamA.innerHTML='';
+  teamB.innerHTML='';
+};
+resetResultBtn.onclick=()=>{
+  pool.innerHTML=teamA.innerHTML=teamB.innerHTML='';
+  lockTeamA=lockTeamB=false;
+  history.replaceState(null,'',location.pathname);
+};
+
+/* ===== ロック ===== */
+function updateLocks(){
+  lockA.textContent=lockTeamA?'🔒':'🔓';
+  lockB.textContent=lockTeamB?'🔒':'🔓';
+}
+lockA.onclick=()=>{lockTeamA=!lockTeamA;updateLocks();}
+lockB.onclick=()=>{lockTeamB=!lockTeamB;updateLocks();}
+
+/* ===== 履歴 ===== */
+function saveHistory(arr){
+  let h=JSON.parse(localStorage.getItem('history')||'[]');
+  h.unshift({arr,time:Date.now()});
+  h=h.slice(0,10);
+  localStorage.setItem('history',JSON.stringify(h));
+  renderHistory();
+}
+function renderHistory(){
+  historyEl.innerHTML='';
+  JSON.parse(localStorage.getItem('history')||'[]').forEach(x=>{
+    const d=document.createElement('div');
+    d.className='history-item';
+    d.onclick=()=>restore(x.arr);
+    d.innerHTML=`
+      <div class="history-time">${new Date(x.time).toLocaleString()}</div>
+      <div class="history-icons">
+        ${x.arr.map(n=>`<img src="${icon(n)}">`).join('')}
+      </div>`;
+    historyEl.appendChild(d);
+  });
+}
+function restore(arr){
+  pool.innerHTML=teamA.innerHTML=teamB.innerHTML='';
+  arr.forEach(n=>pool.appendChild(createCard(n)));
+  updateURL(arr);
+}
+
+/* ===== URL ===== */
+function updateURL(arr){
+  history.replaceState(null,'','?p='+arr.join(','));
+}
+function restoreFromURL(){
+  const q=new URLSearchParams(location.search);
+  if(!q.has('p'))return;
+  q.get('p').split(',').forEach(n=>pool.appendChild(createCard(n)));
+}
+
+/* ===== その他 ===== */
+function updateCounter(){
+  counter.textContent=`抽選済み ${usedSurvival.size} / ${getBaseNormal().length}`;
+  counter.style.display='block';
+}
+resetSurvivalBtn.onclick=()=>{
+  usedSurvival.clear();
+  localStorage.removeItem('usedSurvival');
+  counter.style.display='none';
+  renderGrid();
+};
+resetOwnedBtn.onclick=()=>{
+  owned=new Set(characters.map(c=>c.name));
+  localStorage.removeItem('owned');
+  renderGrid();
+};
+function renderGrid(){
+  grid.innerHTML='';
+  characters.forEach(c=>{
+    const d=document.createElement('div');
+    d.className='char';
+    if(!owned.has(c.name)) d.classList.add('off');
+    if(usedSurvival.has(c.name)) d.classList.add('used');
+    d.innerHTML=`<img src="${icon(c.name)}"><span>${c.name}</span>`;
+    d.onclick=()=>{
+      owned.has(c.name)?owned.delete(c.name):owned.add(c.name);
+      localStorage.setItem('owned',JSON.stringify([...owned]));
+      renderGrid();
+    };
+    grid.appendChild(d);
+  });
+}
+
 
 </script>
 </body>
