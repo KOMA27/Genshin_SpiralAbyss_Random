@@ -110,30 +110,6 @@ function getBaseSurvival(){
   return getBaseNormal().filter(c=>!usedSurvival.has(c.name));
 }
 
-/* ===== カウンタ ===== */
-function updateCounter(){
-  counter.textContent=`抽選済み ${usedSurvival.size} / ${getBaseNormal().length}`;
-  counter.style.display='block';
-}
-
-/* ===== グリッド ===== */
-function renderGrid(){
-  grid.innerHTML='';
-  characters.forEach(c=>{
-    const d=document.createElement('div');
-    d.className='char';
-    if(!owned.has(c.name)) d.classList.add('off');
-    if(usedSurvival.has(c.name)) d.classList.add('used');
-    d.innerHTML=`<img src="${icon(c.name)}"><span>${c.name}</span>`;
-    d.onclick=()=>{
-      owned.has(c.name)?owned.delete(c.name):owned.add(c.name);
-      localStorage.setItem('owned',JSON.stringify([...owned]));
-      renderGrid();
-    };
-    grid.appendChild(d);
-  });
-}
-
 /* ===== カード ===== */
 function createCard(n){
   const d=document.createElement('div');
@@ -145,7 +121,7 @@ function createCard(n){
   return d;
 }
 
-/* ===== スロット（高速化済） ===== */
+/* ===== スロット（倍速） ===== */
 function slotDraw(draw,onEnd){
   pool.innerHTML='';
   const timers=[];
@@ -157,14 +133,14 @@ function slotDraw(draw,onEnd){
       const r=characters[Math.floor(Math.random()*characters.length)].name;
       c.querySelector('img').src=icon(r);
       c.querySelector('span').textContent=r;
-    },40); // ← 倍速
+    },40);
     setTimeout(()=>{
       clearInterval(timers[i]);
       c.classList.remove('shuffling');
       c.querySelector('img').src=icon(draw[i]);
       c.querySelector('span').textContent=draw[i];
       if(i===draw.length-1&&onEnd)onEnd();
-    },400*(i+1)); // ← 倍速
+    },400*(i+1));
   });
 }
 
@@ -203,16 +179,28 @@ function doDraw(isSurvival){
 drawBtn.onclick=()=>doDraw(false);
 survivalDrawBtn.onclick=()=>doDraw(true);
 
-/* ===== リセット ===== */
+/* ===== D&D（完全復元） ===== */
+[pool, teamA, teamB].forEach(list=>{
+  list.ondragover=e=>e.preventDefault();
+  list.ondrop=e=>{
+    e.preventDefault();
+    if(!dragCard) return;
+    if(list===teamA && lockTeamA) return;
+    if(list===teamB && lockTeamB) return;
+    if((list===teamA||list===teamB) && list.children.length>=4){
+      alert('4人までです');
+      return;
+    }
+    list.appendChild(dragCard);
+  };
+});
 
-// 編成リセット：前半・後半 → 抽選結果に戻す
+/* ===== リセット ===== */
 resetTeamBtn.onclick=()=>{
   [...teamA.children,...teamB.children].forEach(c=>pool.appendChild(c));
   teamA.innerHTML='';
   teamB.innerHTML='';
 };
-
-// 抽選結果リセット：全消去
 resetResultBtn.onclick=()=>{
   pool.innerHTML=teamA.innerHTML=teamB.innerHTML='';
   lockTeamA=lockTeamB=false;
@@ -265,7 +253,11 @@ function restoreFromURL(){
   q.get('p').split(',').forEach(n=>pool.appendChild(createCard(n)));
 }
 
-/* ===== その他リセット ===== */
+/* ===== その他 ===== */
+function updateCounter(){
+  counter.textContent=`抽選済み ${usedSurvival.size} / ${getBaseNormal().length}`;
+  counter.style.display='block';
+}
 resetSurvivalBtn.onclick=()=>{
   usedSurvival.clear();
   localStorage.removeItem('usedSurvival');
@@ -277,6 +269,22 @@ resetOwnedBtn.onclick=()=>{
   localStorage.removeItem('owned');
   renderGrid();
 };
+function renderGrid(){
+  grid.innerHTML='';
+  characters.forEach(c=>{
+    const d=document.createElement('div');
+    d.className='char';
+    if(!owned.has(c.name)) d.classList.add('off');
+    if(usedSurvival.has(c.name)) d.classList.add('used');
+    d.innerHTML=`<img src="${icon(c.name)}"><span>${c.name}</span>`;
+    d.onclick=()=>{
+      owned.has(c.name)?owned.delete(c.name):owned.add(c.name);
+      localStorage.setItem('owned',JSON.stringify([...owned]));
+      renderGrid();
+    };
+    grid.appendChild(d);
+  });
+}
 </script>
 
 </body>
