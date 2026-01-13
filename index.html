@@ -1,3 +1,200 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+<meta charset="UTF-8">
+<title>原神 深境螺旋 抽選ツール</title>
+<link rel="stylesheet" href="style.css">
+</head>
+<body>
+
+<h1>深境螺旋 抽選ツール</h1>
+
+<div class="filter-box">
+  <h2 class="sub">抽選条件フィルタ</h2>
+  <div class="filters">
+    <label><input type="checkbox" id="r4" checked>★4</label>
+    <label><input type="checkbox" id="r5" checked>★5</label>
+
+    <label><input type="checkbox" class="el" value="炎" checked>炎</label>
+    <label><input type="checkbox" class="el" value="水" checked>水</label>
+    <label><input type="checkbox" class="el" value="雷" checked>雷</label>
+    <label><input type="checkbox" class="el" value="氷" checked>氷</label>
+    <label><input type="checkbox" class="el" value="風" checked>風</label>
+    <label><input type="checkbox" class="el" value="岩" checked>岩</label>
+    <label><input type="checkbox" class="el" value="草" checked>草</label>
+  </div>
+</div>
+
+<div class="center">
+  <button id="drawBtn">抽選</button>
+  <button id="survivalDrawBtn" class="survival">サバイバルモード抽選</button>
+  <button id="resetTeamBtn" class="reset-btn">編成リセット</button>
+  <button id="resetResultBtn" class="reset-btn">抽選結果リセット</button>
+</div>
+
+<div id="counter" class="counter" style="display:none"></div>
+
+<div class="drag-area">
+  <div class="box">
+    <h2>抽選結果</h2>
+    <div id="pool" class="list"></div>
+  </div>
+
+  <div class="box" id="boxA">
+    <h2>前半 <span id="lockA" class="lock">🔓</span></h2>
+    <div id="teamA" class="list"></div>
+  </div>
+
+  <div class="box" id="boxB">
+    <h2>後半 <span id="lockB" class="lock">🔓</span></h2>
+    <div id="teamB" class="list"></div>
+  </div>
+</div>
+
+<h2 class="sub">キャラ所持設定</h2>
+<div class="center">
+  <button id="resetOwnedBtn" class="reset-btn">所持設定リセット</button>
+  <button id="resetSurvivalBtn" class="reset-btn">サバイバル使用済リセット</button>
+</div>
+<div id="grid" class="character-grid"></div>
+
+<div class="history">
+  <h2>抽選履歴</h2>
+  <div id="history"></div>
+</div>
+
+<script>
+let characters=[];
+let owned=new Set();
+let usedSurvival=new Set();
+let dragCard=null;
+let lockTeamA=false;
+let lockTeamB=false;
+
+const pool=document.getElementById('pool');
+const teamA=document.getElementById('teamA');
+const teamB=document.getElementById('teamB');
+const grid=document.getElementById('grid');
+const historyEl=document.getElementById('history');
+const counter=document.getElementById('counter');
+
+const icon=n=>`./icon/${n}_s.webp`;
+
+/* ===== 初期化 ===== */
+fetch('./characters.json').then(r=>r.json()).then(data=>{
+  characters=data;
+  owned=new Set(JSON.parse(localStorage.getItem('owned')||'[]'));
+  usedSurvival=new Set(JSON.parse(localStorage.getItem('usedSurvival')||'[]'));
+  if(owned.size===0) owned=new Set(characters.map(c=>c.name));
+  renderGrid();
+  restoreFromURL();
+  renderHistory();
+});
+
+/* ===== 抽選条件 ===== */
+function getElements(){
+  return [...document.querySelectorAll('.el:checked')].map(e=>e.value);
+}
+function passElementFilter(c, els){
+  return !c.element || els.includes(c.element);
+}
+function getBaseNormal(){
+  const els=getElements();
+  return characters.filter(c=>
+    owned.has(c.name) &&
+    passElementFilter(c,els) &&
+    ((c.rarity===4&&r4.checked)||(c.rarity===5&&r5.checked))
+  );
+}
+function getBaseSurvival(){
+  return getBaseNormal().filter(c=>!usedSurvival.has(c.name));
+}
+
+/* ===== カード ===== */
+function createCard(n){
+  const d=document.createElement('div');
+  d.className='card';
+  d.innerHTML=`<img src="${icon(n)}"><span>${n}</span>`;
+  d.draggable=true;
+  d.ondragstart=()=>dragCard=d;
+  d.ondragend=()=>dragCard=null;
+  return d;
+}
+
+/* ===== スロット（倍速） ===== */
+function slotDraw(draw,onEnd){
+  pool.innerHTML='';
+  const timers=[];
+  draw.forEach((_,i)=>{
+    const c=createCard(draw[0]);
+    c.classList.add('shuffling');
+    pool.appendChild(c);
+    timers[i]=setInterval(()=>{
+      const r=characters[Math.floor(Math.random()*characters.length)].name;
+      c.querySelector('img').src=icon(r);
+      c.querySelector('span').textContent=r;
+    },40);
+    setTimeout(()=>{
+      clearInterval(timers[i]);
+      c.classList.remove('shuffling');
+      c.querySelector('img').src=icon(draw[i]);
+      c.querySelector('span').textContent=draw[i];
+      if(i===draw.length-1&&onEnd)onEnd();
+    },400*(i+1));
+  });
+}
+
+/* ===== 抽選 ===== */
+function doDraw(isSurvival){
+  pool.innerHTML='';
+  if(!lockTeamA) teamA.innerHTML='';
+  if(!lockTeamB) teamB.innerHTML='';
+
+  const fixed=[
+    ...(lockTeamA?[...teamA.children].map(c=>c.innerText):[]),
+    ...(lockTeamB?[...teamB.children].map(c=>c.innerText):[])
+  ];
+
+  const base=(isSurvival?getBaseSurvival():getBaseNormal())
+    .filter(c=>!fixed.includes(c.name));
+
+  const need=8-fixed.length;
+  if(base.length<need) return alert('抽選対象不足');
+
+  const draw=[...base].sort(()=>Math.random()-0.5).slice(0,need).map(c=>c.name);
+
+  slotDraw(draw,()=>{
+    if(isSurvival){
+      draw.forEach(n=>usedSurvival.add(n));
+      localStorage.setItem('usedSurvival',JSON.stringify([...usedSurvival]));
+      updateCounter();
+      renderGrid();
+    }
+    const result=[...fixed,...draw];
+    saveHistory(result);
+    updateURL(result);
+  });
+}
+
+drawBtn.onclick=()=>doDraw(false);
+survivalDrawBtn.onclick=()=>doDraw(true);
+
+/* ===== D&D（完全復元） ===== */
+[pool, teamA, teamB].forEach(list=>{
+  list.ondragover=e=>e.preventDefault();
+  list.ondrop=e=>{
+    e.preventDefault();
+    if(!dragCard) return;
+    if(list===teamA && lockTeamA) return;
+    if(list===teamB && lockTeamB) return;
+    if((list===teamA||list===teamB) && list.children.length>=4){
+      alert('4人までです');
+      return;
+    }
+    list.appendChild(dragCard);
+  };
+});
+
 /* ===== リセット ===== */
 resetTeamBtn.onclick=()=>{
   [...teamA.children,...teamB.children].forEach(c=>pool.appendChild(c));
@@ -88,3 +285,7 @@ function renderGrid(){
     grid.appendChild(d);
   });
 }
+</script>
+
+</body>
+</html>
