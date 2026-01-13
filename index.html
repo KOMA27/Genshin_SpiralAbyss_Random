@@ -209,8 +209,10 @@ resetResultBtn.onclick=()=>{
 
 /* ===== ロック ===== */
 function updateLocks(){
-  lockA.textContent=lockTeamA?'🔒':'🔓';
-  lockB.textContent=lockTeamB?'🔒':'🔓';
+  lockA.textContent = lockTeamA ? '🔒' : '🔓';
+  lockB.textContent = lockTeamB ? '🔒' : '🔓';
+  boxA.classList.toggle('locked', lockTeamA);
+  boxB.classList.toggle('locked', lockTeamB);
 }
 lockA.onclick=()=>{lockTeamA=!lockTeamA;updateLocks();}
 lockB.onclick=()=>{lockTeamB=!lockTeamB;updateLocks();}
