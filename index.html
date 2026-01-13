@@ -33,6 +33,7 @@
 </div>
 
 <div id="counter" class="counter" style="display:none"></div>
+<div id="supplementInfo" class="supplement-label" style="display:none"></div>
 
 <div class="drag-area">
   <div class="box">
@@ -70,6 +71,7 @@ let usedSurvival=new Set();
 let dragCard=null;
 let lockTeamA=false;
 let lockTeamB=false;
+let supplementNames=[];
 
 const pool=document.getElementById('pool');
 const teamA=document.getElementById('teamA');
@@ -77,6 +79,7 @@ const teamB=document.getElementById('teamB');
 const grid=document.getElementById('grid');
 const historyEl=document.getElementById('history');
 const counter=document.getElementById('counter');
+const supplementInfo=document.getElementById('supplementInfo');
 
 const icon=n=>`./icon/${n}_s.webp`;
 
@@ -89,6 +92,7 @@ fetch('./characters.json').then(r=>r.json()).then(data=>{
   renderGrid();
   restoreFromURL();
   renderHistory();
+  updateLocks();
 });
 
 /* ===== 抽選条件 ===== */
@@ -96,7 +100,7 @@ function getElements(){
   return [...document.querySelectorAll('.el:checked')].map(e=>e.value);
 }
 function passElementFilter(c, els){
-  return !c.element || els.includes(c.element);
+  return els.includes(c.element);
 }
 function getBaseNormal(){
   const els=getElements();
@@ -105,9 +109,6 @@ function getBaseNormal(){
     passElementFilter(c,els) &&
     ((c.rarity===4&&r4.checked)||(c.rarity===5&&r5.checked))
   );
-}
-function getBaseSurvival(){
-  return getBaseNormal().filter(c=>!usedSurvival.has(c.name));
 }
 
 /* ===== カード ===== */
@@ -121,25 +122,31 @@ function createCard(n){
   return d;
 }
 
-/* ===== スロット（倍速） ===== */
+/* ===== スロット ===== */
 function slotDraw(draw,onEnd){
   pool.innerHTML='';
-  const timers=[];
+  supplementNames=[];
   draw.forEach((_,i)=>{
     const c=createCard(draw[0]);
     c.classList.add('shuffling');
     pool.appendChild(c);
-    timers[i]=setInterval(()=>{
+    const timer=setInterval(()=>{
       const r=characters[Math.floor(Math.random()*characters.length)].name;
       c.querySelector('img').src=icon(r);
       c.querySelector('span').textContent=r;
     },40);
+
     setTimeout(()=>{
-      clearInterval(timers[i]);
+      clearInterval(timer);
       c.classList.remove('shuffling');
       c.querySelector('img').src=icon(draw[i]);
       c.querySelector('span').textContent=draw[i];
-      if(i===draw.length-1&&onEnd)onEnd();
+
+      if(supplementNames.includes(draw[i])){
+        c.classList.add('supplement');
+      }
+
+      if(i===draw.length-1 && onEnd) onEnd();
     },400*(i+1));
   });
 }
@@ -147,6 +154,8 @@ function slotDraw(draw,onEnd){
 /* ===== 抽選 ===== */
 function doDraw(isSurvival){
   pool.innerHTML='';
+  supplementInfo.style.display='none';
+
   if(!lockTeamA) teamA.innerHTML='';
   if(!lockTeamB) teamB.innerHTML='';
 
@@ -155,22 +164,51 @@ function doDraw(isSurvival){
     ...(lockTeamB?[...teamB.children].map(c=>c.innerText):[])
   ];
 
-  const base=(isSurvival?getBaseSurvival():getBaseNormal())
-    .filter(c=>!fixed.includes(c.name));
+  const normalBase=getBaseNormal().filter(c=>!fixed.includes(c.name));
+  const survivalBase=normalBase.filter(c=>!usedSurvival.has(c.name));
 
   const need=8-fixed.length;
-  if(base.length<need) return alert('抽選対象不足');
+  if(need<=0) return;
 
-  const draw=[...base].sort(()=>Math.random()-0.5).slice(0,need).map(c=>c.name);
+  let draw=[];
+  let supplementCount=0;
 
-  slotDraw(draw,()=>{
+  if(isSurvival){
+    if(survivalBase.length>=need){
+      draw=[...survivalBase].sort(()=>Math.random()-0.5).slice(0,need);
+    }else{
+      draw=[...survivalBase];
+      supplementCount=need-draw.length;
+
+      const supplement=normalBase
+        .filter(c=>!draw.some(d=>d.name===c.name))
+        .sort(()=>Math.random()-0.5)
+        .slice(0,supplementCount);
+
+      supplementNames=supplement.map(c=>c.name);
+      draw=[...draw,...supplement];
+    }
+  }else{
+    if(normalBase.length<need) return alert('抽選対象不足');
+    draw=[...normalBase].sort(()=>Math.random()-0.5).slice(0,need);
+  }
+
+  const names=draw.map(c=>c.name);
+
+  slotDraw(names,()=>{
     if(isSurvival){
-      draw.forEach(n=>usedSurvival.add(n));
+      names.forEach(n=>usedSurvival.add(n));
       localStorage.setItem('usedSurvival',JSON.stringify([...usedSurvival]));
       updateCounter();
       renderGrid();
+
+      if(supplementCount>0){
+        supplementInfo.textContent=`補充 ${supplementCount} 人`;
+        supplementInfo.style.display='block';
+      }
     }
-    const result=[...fixed,...draw];
+
+    const result=[...fixed,...names];
     saveHistory(result);
     updateURL(result);
   });
@@ -179,15 +217,15 @@ function doDraw(isSurvival){
 drawBtn.onclick=()=>doDraw(false);
 survivalDrawBtn.onclick=()=>doDraw(true);
 
-/* ===== D&D（完全復元） ===== */
-[pool, teamA, teamB].forEach(list=>{
+/* ===== D&D ===== */
+[pool,teamA,teamB].forEach(list=>{
   list.ondragover=e=>e.preventDefault();
   list.ondrop=e=>{
     e.preventDefault();
     if(!dragCard) return;
     if(list===teamA && lockTeamA) return;
     if(list===teamB && lockTeamB) return;
-    if((list===teamA||list===teamB) && list.children.length>=4){
+    if((list===teamA||list===teamB)&&list.children.length>=4){
       alert('4人までです');
       return;
     }
@@ -200,19 +238,27 @@ resetTeamBtn.onclick=()=>{
   [...teamA.children,...teamB.children].forEach(c=>pool.appendChild(c));
   teamA.innerHTML='';
   teamB.innerHTML='';
+  lockTeamA=false;
+  lockTeamB=false;
+  updateLocks();
+  supplementInfo.style.display='none';
 };
+
 resetResultBtn.onclick=()=>{
   pool.innerHTML=teamA.innerHTML=teamB.innerHTML='';
-  lockTeamA=lockTeamB=false;
+  lockTeamA=false;
+  lockTeamB=false;
+  updateLocks();
+  supplementInfo.style.display='none';
   history.replaceState(null,'',location.pathname);
 };
 
 /* ===== ロック ===== */
 function updateLocks(){
-  lockA.textContent = lockTeamA ? '🔒' : '🔓';
-  lockB.textContent = lockTeamB ? '🔒' : '🔓';
-  boxA.classList.toggle('locked', lockTeamA);
-  boxB.classList.toggle('locked', lockTeamB);
+  lockA.textContent=lockTeamA?'🔒':'🔓';
+  lockB.textContent=lockTeamB?'🔒':'🔓';
+  boxA.classList.toggle('locked',lockTeamA);
+  boxB.classList.toggle('locked',lockTeamB);
 }
 lockA.onclick=()=>{lockTeamA=!lockTeamA;updateLocks();}
 lockB.onclick=()=>{lockTeamB=!lockTeamB;updateLocks();}
@@ -264,6 +310,7 @@ resetSurvivalBtn.onclick=()=>{
   usedSurvival.clear();
   localStorage.removeItem('usedSurvival');
   counter.style.display='none';
+  supplementInfo.style.display='none';
   renderGrid();
 };
 resetOwnedBtn.onclick=()=>{
