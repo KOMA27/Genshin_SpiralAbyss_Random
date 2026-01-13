@@ -76,14 +76,7 @@ button.survival{
 /* ===== ロック ===== */
 .lock{cursor:pointer;margin-left:6px}
 .box.locked{opacity:.45;filter:grayscale(60%)}
-/* ロック中の視認性強化（最小変更） */
-.box.locked {
-  opacity: 0.6;
-}
 
-.box.locked h2 {
-  color: #f88;
-}
 /* ===== 抽選アニメ ===== */
 .shuffling{animation:flash .2s linear infinite alternate}
 @keyframes flash{from{opacity:.4}to{opacity:1}}
