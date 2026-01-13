@@ -78,10 +78,6 @@ button{
   margin-left:8px;
   font-size:18px;
 }
-.lock.locked{color:#facc15}
-.lock.unlocked{opacity:.6}
-
-/* ★ ロック中チーム半透明 */
 .box.locked{
   opacity:0.45;
   filter:grayscale(60%);
@@ -105,6 +101,7 @@ button{
   margin-bottom:20px
 }
 .char{
+  position:relative;
   text-align:center;
   cursor:pointer
 }
@@ -118,6 +115,26 @@ button{
 .char.off img{
   filter:grayscale(100%) brightness(50%)
 }
+
+/* ★ サバイバル使用済みチェック */
+.char.used::after{
+  content:"✔";
+  position:absolute;
+  top:-6px;
+  right:-6px;
+  background:#22c55e;
+  color:#000;
+  font-size:14px;
+  font-weight:bold;
+  width:22px;
+  height:22px;
+  border-radius:50%;
+  display:flex;
+  align-items:center;
+  justify-content:center;
+  box-shadow:0 0 6px #000a
+}
+
 .char span{
   font-size:10px;
   display:block;
@@ -178,34 +195,29 @@ button{
 .history{
   margin-top:30px
 }
-
 #history{
   display:grid;
   grid-template-columns:repeat(2,1fr);
   gap:10px;
 }
-
 .history-item{
   background:#020617;
   border-radius:12px;
   padding:8px;
   cursor:pointer;
 }
-
 .history-time{
   font-size:11px;
   opacity:.7;
   margin-bottom:6px;
   text-align:center
 }
-
 .history-icons{
   display:flex;
   flex-wrap:wrap;
   gap:4px;
   justify-content:center
 }
-
 .history-icons img{
   width:26px;
   height:26px;
