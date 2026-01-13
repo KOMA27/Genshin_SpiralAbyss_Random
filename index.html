@@ -69,9 +69,8 @@ let usedSurvival=new Set();
 let dragCard=null;
 let lockTeamA=false;
 let lockTeamB=false;
-let survivalCountShown=false;
 
-const pool=poolEl=document.getElementById('pool');
+const pool=document.getElementById('pool');
 const teamA=document.getElementById('teamA');
 const teamB=document.getElementById('teamB');
 const grid=document.getElementById('grid');
@@ -90,20 +89,33 @@ fetch('./characters.json').then(r=>r.json()).then(data=>{
   renderHistory();
 });
 
-/* ===== 抽選対象計算 ===== */
-function getBase(){
-  const els=[...document.querySelectorAll('.el:checked')].map(e=>e.value);
+/* ===== 抽選条件 ===== */
+function getElements(){
+  return [...document.querySelectorAll('.el:checked')].map(e=>e.value);
+}
+
+function passElementFilter(c, els){
+  return !c.element || els.includes(c.element); // ★旅人対応
+}
+
+/* 通常抽選（使用済み含む） */
+function getBaseNormal(){
+  const els=getElements();
   return characters.filter(c=>
-    owned.has(c.name)&&
-    els.includes(c.element)&&
-    ((c.rarity===4&&r4.checked)||(c.rarity===5&&r5.checked))&&
-    !usedSurvival.has(c.name)
+    owned.has(c.name) &&
+    passElementFilter(c,els) &&
+    ((c.rarity===4&&r4.checked)||(c.rarity===5&&r5.checked))
   );
+}
+
+/* サバイバル抽選（使用済み除外） */
+function getBaseSurvival(){
+  return getBaseNormal().filter(c=>!usedSurvival.has(c.name));
 }
 
 /* ===== カウンタ ===== */
 function updateCounter(){
-  const total=getBase().length+usedSurvival.size;
+  const total=getBaseNormal().length;
   counter.textContent=`抽選済み ${usedSurvival.size} / ${total}`;
   counter.style.display='block';
 }
@@ -171,7 +183,9 @@ function doDraw(isSurvival){
     ...(lockTeamB?[...teamB.children].map(c=>c.innerText):[])
   ];
 
-  const base=getBase().filter(c=>!fixed.includes(c.name));
+  const base=(isSurvival?getBaseSurvival():getBaseNormal())
+    .filter(c=>!fixed.includes(c.name));
+
   const need=8-fixed.length;
   if(base.length<need) return alert('抽選対象不足');
 
@@ -203,10 +217,6 @@ resetOwnedBtn.onclick=()=>{
   localStorage.removeItem('owned');
   renderGrid();
 };
-
-/* ===== ロック ===== */
-lockA.onclick=()=>{lockTeamA=!lockTeamA;};
-lockB.onclick=()=>{lockTeamB=!lockTeamB;};
 
 /* ===== 履歴 ===== */
 function saveHistory(arr){
