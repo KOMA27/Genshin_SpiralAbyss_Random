@@ -20,6 +20,8 @@
   <label><input type="checkbox" class="el" value="風" checked>風</label>
   <label><input type="checkbox" class="el" value="岩" checked>岩</label>
   <label><input type="checkbox" class="el" value="草" checked>草</label>
+
+  <label><input type="checkbox" id="survival">サバイバル</label>
 </div>
 
 <div class="center">
@@ -54,7 +56,6 @@
 
 <div class="history">
   <h2>抽選履歴</h2>
-  履歴をクリックすると抽選結果に反映できます。<br/>
   <div id="history"></div>
 </div>
 
@@ -72,6 +73,7 @@ const boxA=document.getElementById('boxA');
 const boxB=document.getElementById('boxB');
 const grid=document.getElementById('grid');
 const historyEl=document.getElementById('history');
+const survival=document.getElementById('survival');
 
 const icon=n=>`./icon/${n}_s.webp`;
 
@@ -114,8 +116,8 @@ function createCard(name){
   return d;
 }
 
-/* ===== スロット演出（抽選分のみ） ===== */
-function slotDraw(drawNames, onComplete){
+/* ===== スロット演出 ===== */
+function slotDraw(drawNames,onComplete){
   pool.innerHTML='';
   const slots=[];
   const timers=[];
@@ -139,11 +141,8 @@ function slotDraw(drawNames, onComplete){
       slots[i].classList.remove('shuffling');
       slots[i].querySelector('img').src=icon(name);
       slots[i].querySelector('span').textContent=name;
-
-      if(i===drawNames.length-1 && onComplete){
-        onComplete();
-      }
-    },300*(i+1));
+      if(i===drawNames.length-1 && onComplete) onComplete();
+    },800*(i+1));
   });
 }
 
@@ -156,20 +155,19 @@ drawBtn.onclick=()=>{
   if(!lockTeamB) teamB.innerHTML='';
 
   const fixed=[
-    ...(lockTeamA ? [...teamA.children].map(c=>c.innerText) : []),
-    ...(lockTeamB ? [...teamB.children].map(c=>c.innerText) : [])
+    ...(lockTeamA?[...teamA.children].map(c=>c.innerText):[]),
+    ...(lockTeamB?[...teamB.children].map(c=>c.innerText):[])
   ];
 
   const base=characters.filter(c=>
-    owned.has(c.name) &&
-    els.includes(c.element) &&
-    ((c.rarity===4 && r4.checked) || (c.rarity===5 && r5.checked)) &&
+    owned.has(c.name)&&
+    els.includes(c.element)&&
+    ((c.rarity===4&&r4.checked)||(c.rarity===5&&r5.checked))&&
     !fixed.includes(c.name)
   );
 
   const need=8-fixed.length;
   if(need<=0) return;
-
   if(base.length<need){
     alert('抽選対象が不足しています');
     return;
@@ -181,6 +179,12 @@ drawBtn.onclick=()=>{
   slotDraw(draw,()=>{
     saveHistory(result);
     updateURL(result);
+
+    if(survival.checked){
+      result.forEach(n=>owned.delete(n));
+      localStorage.setItem('owned',JSON.stringify([...owned]));
+      renderGrid();
+    }
   });
 };
 
@@ -190,11 +194,10 @@ drawBtn.onclick=()=>{
   list.ondrop=e=>{
     e.preventDefault();
     if(!dragCard)return;
-    if(list===teamA && lockTeamA)return;
-    if(list===teamB && lockTeamB)return;
-    if(list!==pool && list.children.length>=4){
-      alert('4人までです');
-      return;
+    if(list===teamA&&lockTeamA)return;
+    if(list===teamB&&lockTeamB)return;
+    if(list!==pool&&list.children.length>=4){
+      alert('4人までです');return;
     }
     list.appendChild(dragCard);
   };
