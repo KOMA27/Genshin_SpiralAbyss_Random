@@ -57,6 +57,7 @@ button{
 button.survival{
   background:linear-gradient(135deg,#22c55e,#16a34a);
 }
+
 .reset-btn{
   background:#475569;
   color:#e5e7eb;
@@ -72,20 +73,11 @@ button.survival{
   opacity:.9
 }
 
-/* ===== 補充表示 ===== */
-.supplement-label{
-  text-align:center;
-  font-size:13px;
-  margin-bottom:8px;
-  color:#fbbf24;
-  font-weight:bold
-}
-
 /* ===== ロック ===== */
 .lock{cursor:pointer;margin-left:6px}
 .box.locked{
-  opacity:.45;
-  filter:grayscale(60%)
+  opacity:0.55;
+  border-color:var(--accent)
 }
 
 /* ===== 抽選アニメ ===== */
@@ -137,28 +129,13 @@ button.survival{
 
 /* ===== カード ===== */
 .card{
-  display:flex;
-  align-items:center;
+  display:flex;align-items:center;
   background:#020617;
-  padding:6px;
-  border-radius:10px;
+  padding:6px;border-radius:10px;
   cursor:grab
 }
-.card img{
-  width:40px;height:40px;
-  border-radius:8px;
-  margin-right:6px
-}
-.card span{
-  font-size:10px;
-  white-space:nowrap
-}
-
-/* ===== サバイバル補充枠 ===== */
-.card.supplement{
-  border:2px solid #f59e0b;
-  background:#1f1606
-}
+.card img{width:40px;height:40px;border-radius:8px;margin-right:6px}
+.card span{font-size:10px;white-space:nowrap}
 
 /* ===== 履歴 ===== */
 .history{margin-top:30px}
@@ -174,19 +151,11 @@ button.survival{
   cursor:pointer
 }
 .history-time{
-  font-size:11px;
-  opacity:.7;
-  margin-bottom:6px;
-  text-align:center
+  font-size:11px;opacity:.7;margin-bottom:6px;text-align:center
 }
 .history-icons{
-  display:flex;
-  gap:4px;
-  flex-wrap:wrap;
-  justify-content:center
+  display:flex;gap:4px;flex-wrap:wrap;justify-content:center
 }
 .history-icons img{
-  width:26px;
-  height:26px;
-  border-radius:6px
+  width:26px;height:26px;border-radius:6px
 }
