@@ -125,7 +125,6 @@ function createCard(n){
 /* ===== スロット ===== */
 function slotDraw(draw,onEnd){
   pool.innerHTML='';
-  supplementNames=[];
   draw.forEach((_,i)=>{
     const c=createCard(draw[0]);
     c.classList.add('shuffling');
