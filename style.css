@@ -4,6 +4,11 @@
   --border:#334155;
   --text:#e5e7eb;
   --accent:#38bdf8;
+
+  /* 補充用 */
+  --supplement-bg:#422006;
+  --supplement-border:#f59e0b;
+  --supplement-text:#fde68a;
 }
 
 *{box-sizing:border-box}
@@ -73,12 +78,23 @@ button.survival{
   opacity:.9
 }
 
+/* ===== 補充表示 ===== */
+.supplement-info{
+  text-align:center;
+  margin:10px auto 16px;
+  font-size:14px;
+  font-weight:bold;
+  color:var(--supplement-text);
+  background:rgba(245,158,11,.15);
+  border:1px solid var(--supplement-border);
+  border-radius:999px;
+  padding:6px 16px;
+  display:inline-block
+}
+
 /* ===== ロック ===== */
 .lock{cursor:pointer;margin-left:6px}
-.box.locked{
-  opacity:0.55;
-  border-color:var(--accent)
-}
+.box.locked{opacity:.45;filter:grayscale(60%)}
 
 /* ===== 抽選アニメ ===== */
 .shuffling{animation:flash .2s linear infinite alternate}
@@ -129,13 +145,35 @@ button.survival{
 
 /* ===== カード ===== */
 .card{
-  display:flex;align-items:center;
+  display:flex;
+  align-items:center;
   background:#020617;
-  padding:6px;border-radius:10px;
-  cursor:grab
+  padding:6px;
+  border-radius:10px;
+  cursor:grab;
+  border:1px solid transparent
 }
-.card img{width:40px;height:40px;border-radius:8px;margin-right:6px}
-.card span{font-size:10px;white-space:nowrap}
+.card img{
+  width:40px;
+  height:40px;
+  border-radius:8px;
+  margin-right:6px
+}
+.card span{
+  font-size:10px;
+  white-space:nowrap
+}
+
+/* ===== 補充枠カード ===== */
+.card.supplement{
+  background:var(--supplement-bg);
+  border-color:var(--supplement-border);
+  box-shadow:0 0 10px rgba(245,158,11,.6)
+}
+.card.supplement span{
+  color:var(--supplement-text);
+  font-weight:bold
+}
 
 /* ===== 履歴 ===== */
 .history{margin-top:30px}
@@ -151,11 +189,19 @@ button.survival{
   cursor:pointer
 }
 .history-time{
-  font-size:11px;opacity:.7;margin-bottom:6px;text-align:center
+  font-size:11px;
+  opacity:.7;
+  margin-bottom:6px;
+  text-align:center
 }
 .history-icons{
-  display:flex;gap:4px;flex-wrap:wrap;justify-content:center
+  display:flex;
+  gap:4px;
+  flex-wrap:wrap;
+  justify-content:center
 }
 .history-icons img{
-  width:26px;height:26px;border-radius:6px
+  width:26px;
+  height:26px;
+  border-radius:6px
 }
