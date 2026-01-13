@@ -167,9 +167,16 @@ function doDraw(isSurvival){
   const normalBase=getBaseNormal().filter(c=>!fixed.includes(c.name));
   const survivalBase=normalBase.filter(c=>!usedSurvival.has(c.name));
 
-  const need=8-fixed.length;
-  if(need<=0) return;
+const need = 8 - fixed.length;
+if(need <= 0) return;
 
+// ★ 追加ここから
+if(isSurvival){
+  if(normalBase.length < need){
+    alert('抽選対象キャラが8人に満たないため、サバイバル抽選できません');
+    return;
+  }
+}
   let draw=[];
   let supplementCount=0;
 
