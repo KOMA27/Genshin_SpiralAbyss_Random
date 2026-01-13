@@ -23,6 +23,9 @@
     <label><input type="checkbox" class="el" value="岩" checked>岩</label>
     <label><input type="checkbox" class="el" value="草" checked>草</label>
   </div>
+  <div class="center">
+    <button id="resetFilterBtn" class="reset-btn">フィルタリセット</button>
+  </div>
 </div>
 
 <div class="center">
@@ -31,6 +34,8 @@
   <button id="resetTeamBtn" class="reset-btn">編成リセット</button>
   <button id="resetResultBtn" class="reset-btn">抽選結果リセット</button>
 </div>
+
+<div id="supplementInfo" class="supplement-info" style="display:none"></div>
 
 <div id="counter" class="counter" style="display:none"></div>
 
@@ -41,12 +46,26 @@
   </div>
 
   <div class="box" id="boxA">
-    <h2>前半 <span id="lockA" class="lock">🔓</span></h2>
+    <h2>
+      前半
+      <span id="lockA" class="lock">🔓</span>
+    </h2>
+    <div class="center">
+      <button id="drawA" class="reset-btn">前半のみ抽選</button>
+      <button id="drawASurvival" class="reset-btn survival">前半のみサバイバル</button>
+    </div>
     <div id="teamA" class="list"></div>
   </div>
 
   <div class="box" id="boxB">
-    <h2>後半 <span id="lockB" class="lock">🔓</span></h2>
+    <h2>
+      後半
+      <span id="lockB" class="lock">🔓</span>
+    </h2>
+    <div class="center">
+      <button id="drawB" class="reset-btn">後半のみ抽選</button>
+      <button id="drawBSurvival" class="reset-btn survival">後半のみサバイバル</button>
+    </div>
     <div id="teamB" class="list"></div>
   </div>
 </div>
@@ -64,19 +83,37 @@
 </div>
 
 <script>
+/* ===== 状態 ===== */
 let characters=[];
 let owned=new Set();
 let usedSurvival=new Set();
 let dragCard=null;
 let lockTeamA=false;
 let lockTeamB=false;
+let supplementNames=[];
 
+/* ===== DOM ===== */
 const pool=document.getElementById('pool');
 const teamA=document.getElementById('teamA');
 const teamB=document.getElementById('teamB');
 const grid=document.getElementById('grid');
 const historyEl=document.getElementById('history');
 const counter=document.getElementById('counter');
+const supplementInfo=document.getElementById('supplementInfo');
+
+const drawBtn=document.getElementById('drawBtn');
+const survivalDrawBtn=document.getElementById('survivalDrawBtn');
+const drawA=document.getElementById('drawA');
+const drawB=document.getElementById('drawB');
+const drawASurvival=document.getElementById('drawASurvival');
+const drawBSurvival=document.getElementById('drawBSurvival');
+
+const resetFilterBtn=document.getElementById('resetFilterBtn');
+const resetTeamBtn=document.getElementById('resetTeamBtn');
+const resetResultBtn=document.getElementById('resetResultBtn');
+
+const lockA=document.getElementById('lockA');
+const lockB=document.getElementById('lockB');
 
 const icon=n=>`./icon/${n}_s.webp`;
 
@@ -95,7 +132,7 @@ fetch('./characters.json').then(r=>r.json()).then(data=>{
 function getElements(){
   return [...document.querySelectorAll('.el:checked')].map(e=>e.value);
 }
-function passElementFilter(c, els){
+function passElementFilter(c,els){
   return !c.element || els.includes(c.element);
 }
 function getBaseNormal(){
@@ -105,9 +142,6 @@ function getBaseNormal(){
     passElementFilter(c,els) &&
     ((c.rarity===4&&r4.checked)||(c.rarity===5&&r5.checked))
   );
-}
-function getBaseSurvival(){
-  return getBaseNormal().filter(c=>!usedSurvival.has(c.name));
 }
 
 /* ===== カード ===== */
@@ -121,7 +155,7 @@ function createCard(n){
   return d;
 }
 
-/* ===== スロット（倍速） ===== */
+/* ===== スロット（既存） ===== */
 function slotDraw(draw,onEnd){
   pool.innerHTML='';
   const timers=[];
@@ -144,9 +178,34 @@ function slotDraw(draw,onEnd){
   });
 }
 
-/* ===== 抽選 ===== */
+/* ===== スロット（部分抽選用） ===== */
+function slotDrawTo(target,draw,onEnd){
+  target.innerHTML='';
+  const timers=[];
+  draw.forEach((_,i)=>{
+    const c=createCard(draw[0]);
+    c.classList.add('shuffling');
+    target.appendChild(c);
+    timers[i]=setInterval(()=>{
+      const r=characters[Math.floor(Math.random()*characters.length)].name;
+      c.querySelector('img').src=icon(r);
+      c.querySelector('span').textContent=r;
+    },40);
+    setTimeout(()=>{
+      clearInterval(timers[i]);
+      c.classList.remove('shuffling');
+      c.querySelector('img').src=icon(draw[i]);
+      c.querySelector('span').textContent=draw[i];
+      if(i===draw.length-1&&onEnd)onEnd();
+    },400*(i+1));
+  });
+}
+
+/* ===== 全体抽選（補充対応） ===== */
 function doDraw(isSurvival){
-  pool.innerHTML='';
+  supplementNames=[];
+  supplementInfo.style.display='none';
+
   if(!lockTeamA) teamA.innerHTML='';
   if(!lockTeamB) teamB.innerHTML='';
 
@@ -155,57 +214,130 @@ function doDraw(isSurvival){
     ...(lockTeamB?[...teamB.children].map(c=>c.innerText):[])
   ];
 
-  const base=(isSurvival?getBaseSurvival():getBaseNormal())
-    .filter(c=>!fixed.includes(c.name));
-
+  const base=getBaseNormal().filter(c=>!fixed.includes(c.name));
   const need=8-fixed.length;
-  if(base.length<need) return alert('抽選対象不足');
 
-  const draw=[...base].sort(()=>Math.random()-0.5).slice(0,need).map(c=>c.name);
+  if(isSurvival && getBaseNormal().length<8){
+    alert('抽選対象キャラが8人未満です');
+    return;
+  }
 
-  slotDraw(draw,()=>{
+  let draw=[];
+  let supplementCount=0;
+
+  if(isSurvival){
+    const unused=base.filter(c=>!usedSurvival.has(c.name));
+    if(unused.length>=need){
+      draw=[...unused].sort(()=>Math.random()-0.5).slice(0,need);
+    }else{
+      draw=[...unused];
+      supplementCount=need-draw.length;
+      const sup=base.filter(c=>!draw.some(d=>d.name===c.name))
+        .sort(()=>Math.random()-0.5)
+        .slice(0,supplementCount);
+      supplementNames=sup.map(c=>c.name);
+      draw=[...draw,...sup];
+    }
+  }else{
+    if(base.length<need) return alert('抽選対象不足');
+    draw=[...base].sort(()=>Math.random()-0.5).slice(0,need);
+  }
+
+  const names=draw.map(c=>c.name);
+
+  slotDraw(names,()=>{
     if(isSurvival){
-      draw.forEach(n=>usedSurvival.add(n));
+      names.forEach(n=>usedSurvival.add(n));
       localStorage.setItem('usedSurvival',JSON.stringify([...usedSurvival]));
       updateCounter();
       renderGrid();
     }
-    const result=[...fixed,...draw];
+    const result=[...fixed,...names];
     saveHistory(result);
     updateURL(result);
+
+    if(supplementCount>0){
+      supplementInfo.textContent=`補充 ${supplementCount} 人`;
+      supplementInfo.style.display='block';
+    }
   });
 }
 
-drawBtn.onclick=()=>doDraw(false);
-survivalDrawBtn.onclick=()=>doDraw(true);
+/* ===== 部分抽選 ===== */
+function drawOneSide(side,isSurvival){
+  supplementNames=[];
+  supplementInfo.style.display='none';
 
-/* ===== D&D（完全復元） ===== */
-[pool, teamA, teamB].forEach(list=>{
+  const target=side==='A'?teamA:teamB;
+  const fixed=side==='A'?teamB:teamA;
+
+  if(side==='A'&&lockTeamA) return alert('前半がロックされています');
+  if(side==='B'&&lockTeamB) return alert('後半がロックされています');
+
+  const fixedNames=[...fixed.children].map(c=>c.innerText);
+  const base=getBaseNormal().filter(c=>!fixedNames.includes(c.name));
+
+  if(isSurvival && base.length<4){
+    alert('抽選対象キャラが不足しています');
+    return;
+  }
+
+  let draw=[];
+  let supplementCount=0;
+
+  if(isSurvival){
+    const unused=base.filter(c=>!usedSurvival.has(c.name));
+    if(unused.length>=4){
+      draw=[...unused].sort(()=>Math.random()-0.5).slice(0,4);
+    }else{
+      draw=[...unused];
+      supplementCount=4-draw.length;
+      const sup=base.filter(c=>!draw.some(d=>d.name===c.name))
+        .sort(()=>Math.random()-0.5)
+        .slice(0,supplementCount);
+      supplementNames=sup.map(c=>c.name);
+      draw=[...draw,...sup];
+    }
+  }else{
+    if(base.length<4) return alert('抽選対象不足');
+    draw=[...base].sort(()=>Math.random()-0.5).slice(0,4);
+  }
+
+  const names=draw.map(c=>c.name);
+
+  slotDrawTo(target,names,()=>{
+    target.innerHTML='';
+    names.forEach(n=>{
+      const card=createCard(n);
+      if(supplementNames.includes(n)) card.classList.add('supplement');
+      target.appendChild(card);
+      if(isSurvival) usedSurvival.add(n);
+    });
+    localStorage.setItem('usedSurvival',JSON.stringify([...usedSurvival]));
+    updateCounter();
+    renderGrid();
+    if(supplementCount>0){
+      supplementInfo.textContent=`補充 ${supplementCount} 人`;
+      supplementInfo.style.display='block';
+    }
+  });
+}
+
+/* ===== D&D ===== */
+[pool,teamA,teamB].forEach(list=>{
   list.ondragover=e=>e.preventDefault();
   list.ondrop=e=>{
     e.preventDefault();
     if(!dragCard) return;
-    if(list===teamA && lockTeamA) return;
-    if(list===teamB && lockTeamB) return;
-    if((list===teamA||list===teamB) && list.children.length>=4){
+    if(list===teamA&&lockTeamA) return;
+    if(list===teamB&&lockTeamB) return;
+    if((list===teamA||list===teamB)&&list.children.length>=4){
       alert('4人までです');
       return;
     }
     list.appendChild(dragCard);
   };
 });
-
-/* ===== リセット ===== */
-resetTeamBtn.onclick=()=>{
-  [...teamA.children,...teamB.children].forEach(c=>pool.appendChild(c));
-  teamA.innerHTML='';
-  teamB.innerHTML='';
-};
-resetResultBtn.onclick=()=>{
-  pool.innerHTML=teamA.innerHTML=teamB.innerHTML='';
-  lockTeamA=lockTeamB=false;
-  history.replaceState(null,'',location.pathname);
-};
 
 /* ===== ロック ===== */
 function updateLocks(){
@@ -285,6 +417,35 @@ function renderGrid(){
     grid.appendChild(d);
   });
 }
+
+/* ===== ボタン ===== */
+drawBtn.onclick=()=>doDraw(false);
+survivalDrawBtn.onclick=()=>doDraw(true);
+drawA.onclick=()=>drawOneSide('A',false);
+drawASurvival.onclick=()=>drawOneSide('A',true);
+drawB.onclick=()=>drawOneSide('B',false);
+drawBSurvival.onclick=()=>drawOneSide('B',true);
+
+resetFilterBtn.onclick=()=>{
+  r4.checked=true;
+  r5.checked=true;
+  document.querySelectorAll('.el').forEach(e=>e.checked=true);
+};
+
+resetTeamBtn.onclick=()=>{
+  [...teamA.children,...teamB.children].forEach(c=>pool.appendChild(c));
+  teamA.innerHTML='';
+  teamB.innerHTML='';
+  lockTeamA=lockTeamB=false;
+  updateLocks();
+};
+
+resetResultBtn.onclick=()=>{
+  pool.innerHTML=teamA.innerHTML=teamB.innerHTML='';
+  lockTeamA=lockTeamB=false;
+  updateLocks();
+  history.replaceState(null,'',location.pathname);
+};
 </script>
 
 </body>
