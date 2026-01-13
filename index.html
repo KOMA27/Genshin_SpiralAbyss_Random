@@ -46,11 +46,19 @@
 
   <div class="box" id="boxA">
     <h2>前半 <span id="lockA" class="lock">🔓</span></h2>
+    <div class="center">
+  <button id="drawA" class="reset-btn">前半のみ抽選</button>
+  <button id="drawASurvival" class="reset-btn survival">前半のみサバイバル</button>
+</div>
     <div id="teamA" class="list"></div>
   </div>
 
   <div class="box" id="boxB">
     <h2>後半 <span id="lockB" class="lock">🔓</span></h2>
+<div class="center">
+  <button id="drawB" class="reset-btn">後半のみ抽選</button>
+    <button id="drawBSurvival" class="reset-btn survival">後半のみサバイバル</button>
+</div>
     <div id="teamB" class="list"></div>
   </div>
 </div>
@@ -84,7 +92,10 @@ const historyEl=document.getElementById('history');
 const counter=document.getElementById('counter');
 const supplementInfo=document.getElementById('supplementInfo');
 const resetFilterBtn = document.getElementById('resetFilterBtn');
-  
+const drawA = document.getElementById('drawA');
+const drawB = document.getElementById('drawB');
+const drawASurvival = document.getElementById('drawASurvival');
+const drawBSurvival = document.getElementById('drawBSurvival');
 const icon=n=>`./icon/${n}_s.webp`;
 
 /* ===== 初期化 ===== */
@@ -174,7 +185,6 @@ function doDraw(isSurvival){
 const need = 8 - fixed.length;
 if(need <= 0) return;
 
-// ★ 追加ここから
 if(isSurvival){
   if(normalBase.length < need){
     alert('抽選対象キャラが8人に満たないため、サバイバル抽選できません');
@@ -228,6 +238,88 @@ if(isSurvival){
 drawBtn.onclick=()=>doDraw(false);
 survivalDrawBtn.onclick=()=>doDraw(true);
 
+function drawOneSide(side, isSurvival){
+  supplementNames = [];
+  supplementInfo.style.display = 'none';
+
+  const isA = side === 'A';
+  const targetTeam = isA ? teamA : teamB;
+  const otherTeam  = isA ? teamB : teamA;
+
+  // ロックチェック
+  if(isA && lockTeamA) return alert('前半がロックされています');
+  if(!isA && lockTeamB) return alert('後半がロックされています');
+
+  // 固定枠（反対側は固定）
+  const fixed = [...otherTeam.children].map(c => c.innerText);
+
+  // 対象側を空にする
+  targetTeam.innerHTML = '';
+
+  const normalBase = getBaseNormal().filter(c => !fixed.includes(c.name));
+  const survivalBase = normalBase.filter(c => !usedSurvival.has(c.name));
+
+  const need = 4;
+  if(isSurvival && normalBase.length < need){
+    alert('抽選対象キャラが不足しています');
+    return;
+  }
+
+  let draw = [];
+  let supplementCount = 0;
+
+  if(isSurvival){
+    if(survivalBase.length >= need){
+      draw = [...survivalBase].sort(()=>Math.random()-0.5).slice(0,need);
+    }else{
+      draw = [...survivalBase];
+      supplementCount = need - draw.length;
+
+      const supplement = normalBase
+        .filter(c => !draw.some(d=>d.name===c.name))
+        .sort(()=>Math.random()-0.5)
+        .slice(0, supplementCount);
+
+      supplementNames = supplement.map(c=>c.name);
+      draw = [...draw, ...supplement];
+    }
+  }else{
+    if(normalBase.length < need) return alert('抽選対象不足');
+    draw = [...normalBase].sort(()=>Math.random()-0.5).slice(0,need);
+  }
+
+  const names = draw.map(c=>c.name);
+
+  slotDraw(names, ()=>{
+    names.forEach(n => {
+      const card = createCard(n);
+      if(supplementNames.includes(n)){
+        card.classList.add('supplement');
+      }
+      targetTeam.appendChild(card);
+    });
+
+    if(isSurvival){
+      names.forEach(n=>usedSurvival.add(n));
+      localStorage.setItem('usedSurvival',JSON.stringify([...usedSurvival]));
+      updateCounter();
+      renderGrid();
+
+      if(supplementCount>0){
+        supplementInfo.textContent = `補充 ${supplementCount} 人`;
+        supplementInfo.style.display = 'block';
+      }
+    }
+  });
+}
+// 通常
+drawA.onclick = () => drawOneSide('A', false);
+drawB.onclick = () => drawOneSide('B', false);
+
+// サバイバル
+drawASurvival.onclick = () => drawOneSide('A', true);
+drawBSurvival.onclick = () => drawOneSide('B', true);
+  
 /* ===== D&D ===== */
 [pool,teamA,teamB].forEach(list=>{
   list.ondragover=e=>e.preventDefault();
