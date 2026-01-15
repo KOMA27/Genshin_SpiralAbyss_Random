@@ -69,6 +69,11 @@ button.survival{
   padding:8px 18px
 }
 
+.re-lottery-btn-survival{
+  background:linear-gradient(135deg,#22c55e,#16a34a);
+  font-size:13px;
+  padding:8px 18px
+}
 .reset-btn{
   background:#475569;
   color:#e5e7eb;
