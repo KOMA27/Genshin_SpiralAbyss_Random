@@ -295,6 +295,11 @@
     "element": "水"
   },
   {
+    "name": "兹白",
+    "rarity": 5,
+    "element": "岩"
+  },
+  {
     "name": "アルレッキーノ",
     "rarity": 5,
     "element": "炎"
@@ -543,5 +548,10 @@
     "name": "ヤフォダ",
     "rarity": 4,
     "element": "風"
+  },
+  {
+    "name": "イルーガ",
+    "rarity": 4,
+    "element": "岩"
   }
 ]
